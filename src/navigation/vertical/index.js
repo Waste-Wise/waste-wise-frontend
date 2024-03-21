@@ -1,21 +1,46 @@
 const navigation = () => {
   return [
     {
-      title: 'Home',
+      title: 'Dashboard',
       path: '/home',
-      icon: 'mdi:home-outline',
+      icon: 'mdi:view-dashboard-outline'
     },
     {
-      title: 'Second Page',
-      path: '/second-page',
-      icon: 'mdi:email-outline',
+      title: 'Collection Schedule',
+      path: '/',
+      icon: 'healthicons:i-schedule-school-date-time'
     },
     {
-      path: '/acl',
-      action: 'read',
-      subject: 'acl-page',
-      title: 'Access Control',
-      icon: 'mdi:shield-outline',
+      title: 'Routes',
+      path: '/',
+      icon: 'eos-icons:route'
+    },
+    {
+      title: 'Manage Drivers',
+      path: '/driver-management',
+      icon: 'mdi:drivers-license-outline'
+    },
+    {
+      title: 'Manage Fleet',
+      icon: 'mdi:truck-outline',
+      children: [
+        {
+          title: 'Vehicles',
+          path: '/'
+        },
+        {
+          title: 'Vehicle Types',
+          path: '/'
+        },
+        {
+          title: 'Vehicle Makes',
+          path: '/'
+        },
+        {
+          title: 'Vehicle Models',
+          path: '/'
+        }
+      ]
     }
   ]
 }

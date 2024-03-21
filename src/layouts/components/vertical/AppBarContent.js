@@ -27,7 +27,7 @@ const AppBarContent = props => {
 
         {/* <ModeToggler settings={settings} saveSettings={saveSettings} /> */}
         <Typography variant='h5' color='text.primary' className='logo-text'>
-          WasteWise - Admin Panel
+          WasteWise
         </Typography>
       </Box>
       <Box className='actions-right' sx={{ display: 'flex', alignItems: 'center' }}>
