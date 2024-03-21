@@ -2,6 +2,9 @@
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 
+// ** MUI Components
+import Typography from '@mui/material/Typography'
+
 // ** Icon Imports
 import Icon from 'src/@core/components/icon'
 
@@ -22,7 +25,10 @@ const AppBarContent = props => {
           </IconButton>
         ) : null}
 
-        <ModeToggler settings={settings} saveSettings={saveSettings} />
+        {/* <ModeToggler settings={settings} saveSettings={saveSettings} /> */}
+        <Typography variant='h5' color='text.primary' className='logo-text'>
+          WasteWise - Admin Panel
+        </Typography>
       </Box>
       <Box className='actions-right' sx={{ display: 'flex', alignItems: 'center' }}>
         <UserDropdown settings={settings} />
@@ -32,4 +38,3 @@ const AppBarContent = props => {
 }
 
 export default AppBarContent
-

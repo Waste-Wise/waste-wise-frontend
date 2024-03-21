@@ -31,7 +31,7 @@ const Footer = props => {
           bottom: 0,
           position: 'sticky',
           ...(layout === 'vertical'
-            ? { px: [4, 6] }
+            ? null
             : {
                 backgroundColor: 'background.paper',
                 ...(skin === 'bordered' ? { borderTop: `1px solid ${theme.palette.divider}` } : { boxShadow: 6 })
@@ -47,8 +47,8 @@ const Footer = props => {
           py: theme.spacing(footer === 'fixed' && skin === 'bordered' ? 3.875 : 4),
           ...(contentWidth === 'boxed' && { '@media (min-width:1440px)': { maxWidth: 1440 } }),
           ...(layout === 'vertical' && {
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
+            // borderTopLeftRadius: 14,
+            // borderTopRightRadius: 14,
             ...(footer === 'fixed' && { backgroundColor: 'background.paper' })
           }),
           ...(footer === 'fixed'

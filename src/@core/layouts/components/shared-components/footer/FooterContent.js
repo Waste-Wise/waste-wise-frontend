@@ -25,10 +25,10 @@ const FooterContent = () => {
         </Box>
         {` by `}
         <LinkStyled target='_blank' href='https://pixinvent.com/'>
-          Pixinvent
+          WasteWise
         </LinkStyled>
       </Typography>
-      {hidden ? null : (
+      {/* {hidden ? null : (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', '& :not(:last-child)': { mr: 4 } }}>
           <LinkStyled target='_blank' href='https://themeforest.net/licenses/standard'>
             License
@@ -38,7 +38,7 @@ const FooterContent = () => {
           </LinkStyled>
           <LinkStyled
             target='_blank'
-            href='https://demos.pixinvent.com/materialize-nextjs-admin-template/documentation'
+            href=''
           >
             Documentation
           </LinkStyled>
@@ -46,7 +46,7 @@ const FooterContent = () => {
             Support
           </LinkStyled>
         </Box>
-      )}
+      )} */}
     </Box>
   )
 }

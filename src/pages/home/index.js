@@ -22,6 +22,30 @@ const Home = () => {
       </Grid>
       <Grid item xs={12}>
         <Card>
+          <CardHeader title='Kick start your project 🚀'></CardHeader>
+          <CardContent>
+            <Typography sx={{ mb: 2 }}>All the best for your new project.</Typography>
+            <Typography>
+              Please make sure to read our Template Documentation to understand where to go from here and how to use our
+              template.
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12}>
+        <Card>
+          <CardHeader title='Kick start your project 🚀'></CardHeader>
+          <CardContent>
+            <Typography sx={{ mb: 2 }}>All the best for your new project.</Typography>
+            <Typography>
+              Please make sure to read our Template Documentation to understand where to go from here and how to use our
+              template.
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12}>
+        <Card>
           <CardHeader title='ACL and JWT 🔒'></CardHeader>
           <CardContent>
             <Typography sx={{ mb: 2 }}>
