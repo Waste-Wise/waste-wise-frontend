@@ -7,7 +7,7 @@ const navigation = () => {
     },
     {
       title: 'Collection Schedule',
-      path: '/',
+      path: '/schedule-management',
       icon: 'healthicons:i-schedule-school-date-time'
     },
     {
