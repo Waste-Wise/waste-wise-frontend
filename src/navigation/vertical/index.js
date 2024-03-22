@@ -16,12 +16,12 @@ const navigation = () => {
       icon: 'eos-icons:route'
     },
     {
-      title: 'Manage Drivers',
+      title: 'Drivers',
       path: '/driver-management',
       icon: 'mdi:drivers-license-outline'
     },
     {
-      title: 'Manage Fleet',
+      title: 'Fleet',
       icon: 'mdi:truck-outline',
       children: [
         {
