@@ -14,22 +14,13 @@ import Link from 'next/link'
 import { styled } from '@mui/material/styles'
 
 // ** Custom Components
-import CustomAvatar from 'src/@core/components/mui/avatar'
+import CustomChip from 'src/@core/components/mui/chip'
 
 // ** Utils Import
 import { getInitials } from 'src/@core/utils/get-initials'
 
 // ** Data Import
 import { rows } from './static-data'
-
-const LinkStyled = styled(Link)(({ theme }) => ({
-  textDecoration: 'none',
-  color: theme.palette.secondary.main,
-  textDecoration: 'underline',
-  '&:hover': {
-    color: theme.palette.primary.main
-  }
-}))
 
 const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   top: 0,
@@ -46,79 +37,73 @@ const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   }
 }))
 
-const renderClient = params => {
-  const { row } = params
-  const stateNum = Math.floor(Math.random() * 6)
-  const states = ['success', 'error', 'warning', 'info', 'primary', 'secondary']
-  const color = states[stateNum]
-  if (row.avatar.length) {
-    return <CustomAvatar src={`/images/avatars/${row.avatar}`} sx={{ mr: 3, width: '1.875rem', height: '1.875rem' }} />
-  } else {
-    return (
-      <CustomAvatar skin='light' color={color} sx={{ mr: 3, fontSize: '.8rem', width: '1.875rem', height: '1.875rem' }}>
-        {getInitials(row.full_name ? row.full_name : 'John Doe')}
-      </CustomAvatar>
-    )
-  }
-}
-
-const ManageDrivers = () => {
+const ManageRoutes = () => {
   // const [rows, setRows] = useState([])
 
   const [columns, setColumns] = useState([
     {
-      flex: 0.275,
-      minWidth: 290,
-      field: 'full_name',
-      headerName: 'Name',
-
-      renderCell: params => {
-        const { row } = params
-
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {renderClient(params)}
-            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-              <Typography noWrap variant='body2' sx={{ color: 'text.primary', fontWeight: 600 }}>
-                {row.full_name}
-              </Typography>
-              <Typography noWrap variant='caption'>
-                {row.email}
-              </Typography>
-            </Box>
-          </Box>
-        )
-      }
+      flex: 0.1,
+      minWidth: 100,
+      field: 'route_id',
+      headerName: 'Route ID',
+      renderCell: params => <Typography variant='body2'>{params.row.route_id}</Typography>
     },
     {
-      flex: 0.2,
-      type: 'vehicle',
-      minWidth: 120,
-      headerName: 'Vehicle',
-      field: 'vehicle',
+      flex: 0.15,
+      minWidth: 150,
+      field: 'route_name',
+      headerName: 'Route Name',
 
-      valueGetter: params => new Date(params.value),
-      renderCell: params => (
-        <Typography variant='body2'>
-          <LinkStyled href='/'>{params.row.vehicle}</LinkStyled>
-        </Typography>
-      )
+      renderCell: params => <Typography variant='body2'>{params.row.route_name}</Typography>
     },
     {
-      flex: 0.2,
-      minWidth: 110,
-      field: 'route',
-      headerName: 'Route',
+      flex: 0.1,
+      minWidth: 100,
+      field: 'route_start',
+      headerName: 'Start',
+
+      renderCell: params => <Typography variant='body2'>{params.row.route_start}</Typography>
+    },
+    {
+      flex: 0.1,
+      minWidth: 100,
+      field: 'route_end',
+      headerName: 'End',
+
+      renderCell: params => <Typography variant='body2'>{params.row.route_end}</Typography>
+    },
+    {
+      flex: 0.1,
+      minWidth: 100,
+      field: 'route_distance',
+      headerName: 'Distance',
+
+      renderCell: params => <Typography variant='body2'>{params.row.route_distance}</Typography>
+    },
+    {
+      flex: 0.1,
+      minWidth: 100,
+      field: 'route_duration',
+      headerName: 'Duration',
+
+      renderCell: params => <Typography variant='body2'>{params.row.route_duration}</Typography>
+    },
+    {
+      flex: 0.1,
+      minWidth: 100,
+      field: 'route_status',
+      headerName: 'Status',
 
       renderCell: params => (
-        <Typography variant='body2'>
-          <LinkStyled href='/'>{params.row.route}</LinkStyled>
-        </Typography>
+        <CustomChip
+          label={params.row.route_status}
+          color={params.row.route_status === 'Active' ? 'success' : 'error'}
+        />
       )
     },
     {
       flex: 0.15,
-      minWidth: 100,
+      minWidth: 200,
       field: 'actions',
       headerName: 'Actions',
 
@@ -126,7 +111,7 @@ const ManageDrivers = () => {
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
             <Button variant='outlined' color='primary'>
-              View Profile
+              View Route
             </Button>
           </Box>
         )
@@ -147,7 +132,7 @@ const ManageDrivers = () => {
     <>
       <Grid container spacing={6}>
         <Grid item xs={12}>
-          <Typography variant='h5'>Manage Drivers</Typography>
+          <Typography variant='h5'>Manage Routes</Typography>
         </Grid>
         <Grid item xs={12}>
           <Card>
@@ -160,7 +145,7 @@ const ManageDrivers = () => {
                   }}
                 >
                   <Icon icon='mdi:plus' fontSize={20} />
-                  Add Driver
+                  Add Route
                 </Button>
               }
             />
@@ -168,6 +153,7 @@ const ManageDrivers = () => {
               <DataGrid
                 autoHeight
                 getRowHeight={() => 'auto'}
+                getRowId={row => row.route_id}
                 rows={rows}
                 rowCount={rowCount}
                 columns={columns}
@@ -189,7 +175,7 @@ const ManageDrivers = () => {
         scroll='paper'
       >
         <DialogTitle variant='h5'>
-          Add New Driver
+          Add New Route
           <CustomCloseButton aria-label='close' onClick={handleCloseDialog}>
             <Icon icon='tabler:x' fontSize='1.25rem' />
           </CustomCloseButton>
@@ -205,7 +191,7 @@ const ManageDrivers = () => {
         </DialogContent>
         <DialogActions>
           <Button variant='contained' sx={{ px: 4 }}>
-            Add Driver
+            Add Route
           </Button>
         </DialogActions>
       </Dialog>
@@ -213,4 +199,4 @@ const ManageDrivers = () => {
   )
 }
 
-export default ManageDrivers
+export default ManageRoutes

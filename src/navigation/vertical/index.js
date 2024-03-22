@@ -12,7 +12,7 @@ const navigation = () => {
     },
     {
       title: 'Routes',
-      path: '/',
+      path: '/route-management',
       icon: 'eos-icons:route'
     },
     {
@@ -25,20 +25,12 @@ const navigation = () => {
       icon: 'mdi:truck-outline',
       children: [
         {
-          title: 'Vehicles',
-          path: '/'
+          title: 'Track Fleet',
+          path: '/fleet-management/track-fleet'
         },
         {
-          title: 'Vehicle Types',
-          path: '/'
-        },
-        {
-          title: 'Vehicle Makes',
-          path: '/'
-        },
-        {
-          title: 'Vehicle Models',
-          path: '/'
+          title: 'View Fleet',
+          path: '/fleet-management/view-fleet'
         }
       ]
     }
