@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import { DataGrid } from '@mui/x-data-grid'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material'
 import { Icon } from '@iconify/react'
 
@@ -21,6 +21,7 @@ import { getInitials } from 'src/@core/utils/get-initials'
 
 // ** Data Import
 import { rows } from './static-data'
+import { set } from 'nprogress'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -143,6 +144,31 @@ const ManageDrivers = () => {
     setOpenDialog(false)
   }
 
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneNumberError, setPhoneNumberError] = useState('')
+
+  const handlePhoneNumberChange = value => {
+    const input = value.slice(0, 9)
+    setPhoneNumberError('')
+    setPhoneNumber(input)
+
+    const firstDigit = input.charAt(0)
+
+    if (firstDigit === '7') {
+      if (input !== '') {
+        if (input.length < 9) {
+          setPhoneNumberError('Phone number must be 9 digits')
+        } else {
+          setPhoneNumberError('')
+        }
+      } else {
+        setPhoneNumberError('')
+      }
+    } else {
+      setPhoneNumberError('Invalid phone number')
+    }
+  }
+
   return (
     <>
       <Grid container spacing={6}>
@@ -199,7 +225,7 @@ const ManageDrivers = () => {
             width: '600px'
           }}
         >
-          <Grid container spacing={3} sx={{ pt: 3 }}>
+          <Grid container spacing={6} sx={{ pt: 3 }}>
             <Grid item xs={12}>
               <TextField id='outlined-basic' label='Driver Name' variant='outlined' fullWidth />
             </Grid>
@@ -207,7 +233,21 @@ const ManageDrivers = () => {
               <TextField id='outlined-basic' label='Driver Email' variant='outlined' fullWidth />
             </Grid>
             <Grid item xs={6}>
-              <TextField id='outlined-basic' label='Driver Phone Number' variant='outlined' fullWidth />
+              <TextField
+                id='outlined-basic'
+                label='Driver Phone Number'
+                variant='outlined'
+                fullWidth
+                type='number'
+                placeholder='7xxxxxxxx'
+                value={phoneNumber}
+                onChange={e => handlePhoneNumberChange(e.target.value)}
+                error={phoneNumberError.length > 0}
+                helperText={phoneNumberError}
+                InputProps={{
+                  startAdornment: <Box sx={{ mr: 1 }}>+94</Box>
+                }}
+              />
             </Grid>
             <Grid item xs={12}>
               <TextField id='outlined-basic' label='Driver NIC' variant='outlined' fullWidth />
