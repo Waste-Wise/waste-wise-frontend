@@ -256,16 +256,17 @@ const LoginPage = () => {
               </Typography>
             </Box>
             <Box sx={{ mb: 10 }}>
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexDirection: 'column',
-                mb: 6
-              }}>
-
-                <img src='/images/logo-2.png' alt='logo' height='130' width='auto' />
-                </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  flexDirection: 'column',
+                  mb: 8
+                }}
+              >
+                <img src='/images/wastewiselogo.png' alt='logo' height='180' width='auto' />
+              </Box>
               <TypographyStyled variant='h5'>{`Welcome to ${themeConfig.templateName}! 👋🏻`}</TypographyStyled>
               <Typography variant='body2'>Please sign-in to your account to continue.</Typography>
             </Box>
