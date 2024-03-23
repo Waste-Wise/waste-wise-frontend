@@ -126,6 +126,63 @@ const ManageRoutes = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false)
+
+    setRouteName('')
+    setRouteStart('')
+    setRouteEnd('')
+    setRouteDistance('')
+    setRouteDuration('')
+
+    setRouteNameError('')
+    setRouteStartError('')
+    setRouteEndError('')
+    setRouteDistanceError('')
+    setRouteDurationError('')
+    
+  }
+
+  const [routeName, setRouteName] = useState('')
+  const [routeStart, setRouteStart] = useState('')
+  const [routeEnd, setRouteEnd] = useState('')
+  const [routeDistance, setRouteDistance] = useState('')
+  const [routeDuration, setRouteDuration] = useState('')
+
+  const [routeNameError, setRouteNameError] = useState('')
+  const [routeStartError, setRouteStartError] = useState('')
+  const [routeEndError, setRouteEndError] = useState('')
+  const [routeDistanceError, setRouteDistanceError] = useState('')
+  const [routeDurationError, setRouteDurationError] = useState('')
+
+  const handleRouteCreate = () => {
+    if (routeName === '') {
+      setRouteNameError('Route Name is required')
+    } else {
+      setRouteNameError('')
+    }
+
+    if (routeStart === '') {
+      setRouteStartError('Route Start is required')
+    } else {
+      setRouteStartError('')
+    }
+
+    if (routeEnd === '') {
+      setRouteEndError('Route End is required')
+    } else {
+      setRouteEndError('')
+    }
+
+    if (routeDistance === '') {
+      setRouteDistanceError('Route Distance is required')
+    } else {
+      setRouteDistanceError('')
+    }
+
+    if (routeDuration === '') {
+      setRouteDurationError('Route Duration is required')
+    } else {
+      setRouteDurationError('')
+    }
   }
 
   return (
@@ -185,15 +242,51 @@ const ManageRoutes = () => {
             width: '600px'
           }}
         >
-          <Grid container spacing={3} sx={{ pt: 3 }}>
+          <Grid container spacing={6} sx={{ pt: 3 }}>
             <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Route Name' variant='outlined' fullWidth />
+              <TextField
+                id='outlined-basic'
+                label='Route Name'
+                variant='outlined'
+                fullWidth
+                value={routeName}
+                onChange={e => {
+                  setRouteNameError('')
+                  setRouteName(e.target.value)
+                }}
+                error={routeNameError.length > 0}
+                helperText={routeNameError}
+              />
             </Grid>
             <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Route Start' variant='outlined' fullWidth />
+              <TextField
+                id='outlined-basic'
+                label='Route Start'
+                variant='outlined'
+                fullWidth
+                value={routeStart}
+                onChange={e => {
+                  setRouteStartError('')
+                  setRouteStart(e.target.value)
+                }}
+                error={routeStartError.length > 0}
+                helperText={routeStartError}
+              />
             </Grid>
             <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Route End' variant='outlined' fullWidth />
+              <TextField
+                id='outlined-basic'
+                label='Route End'
+                variant='outlined'
+                fullWidth
+                value={routeEnd}
+                onChange={e => {
+                  setRouteEndError('')
+                  setRouteEnd(e.target.value)
+                }}
+                error={routeEndError.length > 0}
+                helperText={routeEndError}
+              />
             </Grid>
             <Grid item xs={6}>
               <TextField
@@ -202,6 +295,13 @@ const ManageRoutes = () => {
                 type='number'
                 variant='outlined'
                 fullWidth
+                value={routeDistance}
+                onChange={e => {
+                  setRouteDistanceError('')
+                  setRouteDistance(e.target.value)
+                }}
+                error={routeDistanceError.length > 0}
+                helperText={routeDistanceError}
                 InputProps={{
                   endAdornment: 'KM'
                 }}
@@ -214,6 +314,13 @@ const ManageRoutes = () => {
                 type='number'
                 variant='outlined'
                 fullWidth
+                value={routeDuration}
+                onChange={e => {
+                  setRouteDurationError('')
+                  setRouteDuration(e.target.value)
+                }}
+                error={routeDurationError.length > 0}
+                helperText={routeDurationError}
                 InputProps={{
                   endAdornment: 'Hours'
                 }}
@@ -222,7 +329,7 @@ const ManageRoutes = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button variant='contained' sx={{ px: 4 }}>
+          <Button variant='contained' sx={{ px: 4 }} onClick={handleRouteCreate}>
             Add Route
           </Button>
         </DialogActions>
