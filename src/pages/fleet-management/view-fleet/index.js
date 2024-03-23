@@ -6,7 +6,20 @@ import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import { DataGrid } from '@mui/x-data-grid'
 import { useState } from 'react'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material'
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl
+} from '@mui/material'
 import { Icon } from '@iconify/react'
 
 import Link from 'next/link'
@@ -87,6 +100,9 @@ const ViewFleet = () => {
     }
   ])
 
+  const [vehicleNum, setVehicleNum] = useState('')
+  const [vehicleNumerror, setVehicleNumError] = useState('')
+
   const [rowCount, setRowCount] = useState(3)
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
@@ -154,17 +170,58 @@ const ViewFleet = () => {
           }}
         >
           <Grid container spacing={3} sx={{ pt: 3 }}>
-            <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Vehicle' variant='outlined' fullWidth />
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel id='demo-simple-select-label'>Vehicle Type</InputLabel>
+                <Select labelId='demo-simple-select-label' id='demo-simple-select' label='Vehicle type'>
+                  <MenuItem value={10}>Tractor</MenuItem>
+                  <MenuItem value={20}>Mini truck</MenuItem>
+                  <MenuItem value={30}>Mini Lorry</MenuItem>
+                  <MenuItem value={30}>Dimo Batta</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                value={vehicleNum}
+                id='outlined-basic'
+                label='Vehicle Number'
+                variant='outlined'
+                fullWidth
+                error={vehicleNumerror.length > 0}
+                helperText={vehicleNumerror}
+                onChange={e => {
+                  const input = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') // Remove non-alphanumeric characters
+                  let formattedInput = input.replace(/(\w{2,3})(\d{0,4})/, '$1-$2') // Add hyphen between characters and integers
+
+                  const isValid = /^[A-Za-z]{2,3}-\d{4}$/.test(formattedInput) // Check validity
+
+                  if (isValid) {
+                    setVehicleNumError('')
+                  } else {
+                    setVehicleNumError('Invalid Vehicle Number')
+                  }
+                  setVehicleNum(formattedInput)
+                }}
+              />
             </Grid>
             <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Vehicle' variant='outlined' fullWidth />
+              <FormControl fullWidth>
+                <InputLabel id='demo-simple-select-label'>Company Name</InputLabel>
+                <Select labelId='demo-simple-select-label' id='demo-simple-select' label='Company Name'>
+                  <MenuItem value={10}>Waste Wise</MenuItem>
+                  <MenuItem value={20}>Kaduwela Municiple Council</MenuItem>
+                  <MenuItem value={30}>Malabe Municiple Council</MenuItem>
+                  <MenuItem value={30}>Kadawatha Municiple Council</MenuItem>
+                  <MenuItem value={30}>Panadura Municiple Council</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
-            <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Vehicle' variant='outlined' fullWidth />
+            <Grid item xs={6}>
+              <TextField id='outlined-basic' label='Driver Name' variant='outlined' fullWidth />
             </Grid>
-            <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Vehicle' variant='outlined' fullWidth />
+            <Grid item xs={6}>
+              <TextField id='outlined-basic' label='Helper Name' variant='outlined' fullWidth />
             </Grid>
           </Grid>
         </DialogContent>
