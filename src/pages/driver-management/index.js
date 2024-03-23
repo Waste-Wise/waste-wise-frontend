@@ -6,7 +6,7 @@ import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import { DataGrid } from '@mui/x-data-grid'
 import { useState } from 'react'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from '@mui/material'
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material'
 import { Icon } from '@iconify/react'
 
 import Link from 'next/link'
@@ -199,8 +199,19 @@ const ManageDrivers = () => {
             width: '600px'
           }}
         >
-          <Grid container spacing={3} sx={{ pt: 1 }}>
-            <Grid item xs={12}></Grid>
+          <Grid container spacing={3} sx={{ pt: 3 }}>
+            <Grid item xs={12}>
+              <TextField id='outlined-basic' label='Driver Name' variant='outlined' fullWidth />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField id='outlined-basic' label='Driver Email' variant='outlined' fullWidth />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField id='outlined-basic' label='Driver Phone Number' variant='outlined' fullWidth />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField id='outlined-basic' label='Driver NIC' variant='outlined' fullWidth />
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
