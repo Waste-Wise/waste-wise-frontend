@@ -6,7 +6,20 @@ import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import { DataGrid } from '@mui/x-data-grid'
 import { useEffect, useState } from 'react'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material'
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl
+} from '@mui/material'
 import { Icon } from '@iconify/react'
 
 import Link from 'next/link'
@@ -20,8 +33,9 @@ import CustomAvatar from 'src/@core/components/mui/avatar'
 import { getInitials } from 'src/@core/utils/get-initials'
 
 // ** Data Import
-import { rows } from './static-data'
-import { set } from 'nprogress'
+import { rowData } from './static-data'
+
+import { useRouter } from 'next/router'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -52,25 +66,32 @@ const renderClient = params => {
   const stateNum = Math.floor(Math.random() * 6)
   const states = ['success', 'error', 'warning', 'info', 'primary', 'secondary']
   const color = states[stateNum]
-  if (row.avatar.length) {
-    return <CustomAvatar src={`/images/avatars/${row.avatar}`} sx={{ mr: 3, width: '1.875rem', height: '1.875rem' }} />
+  if (row?.driver_avatar?.length) {
+    return (
+      <CustomAvatar
+        src={`/images/avatars/${row.driver_avatar}`}
+        sx={{ mr: 3, width: '1.875rem', height: '1.875rem' }}
+      />
+    )
   } else {
     return (
       <CustomAvatar skin='light' color={color} sx={{ mr: 3, fontSize: '.8rem', width: '1.875rem', height: '1.875rem' }}>
-        {getInitials(row.full_name ? row.full_name : 'John Doe')}
+        {getInitials(row.driver_name ? row.driver_name : 'John Doe')}
       </CustomAvatar>
     )
   }
 }
 
 const ManageDrivers = () => {
-  // const [rows, setRows] = useState([])
+  const router = useRouter()
+
+  const [rows, setRows] = useState([])
 
   const [columns, setColumns] = useState([
     {
       flex: 0.275,
       minWidth: 290,
-      field: 'full_name',
+      field: 'driver_name',
       headerName: 'Name',
 
       renderCell: params => {
@@ -81,10 +102,10 @@ const ManageDrivers = () => {
             {renderClient(params)}
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
               <Typography noWrap variant='body2' sx={{ color: 'text.primary', fontWeight: 600 }}>
-                {row.full_name}
+                {row.driver_name}
               </Typography>
               <Typography noWrap variant='caption'>
-                {row.email}
+                {row.emp_no}
               </Typography>
             </Box>
           </Box>
@@ -93,27 +114,26 @@ const ManageDrivers = () => {
     },
     {
       flex: 0.2,
-      type: 'vehicle',
       minWidth: 120,
       headerName: 'Vehicle',
-      field: 'vehicle',
+      field: 'assigned_vehicle',
 
       valueGetter: params => new Date(params.value),
       renderCell: params => (
         <Typography variant='body2'>
-          <LinkStyled href='/'>{params.row.vehicle}</LinkStyled>
+          <LinkStyled href='/'>{params.row.assigned_vehicle}</LinkStyled>
         </Typography>
       )
     },
     {
       flex: 0.2,
       minWidth: 110,
-      field: 'route',
+      field: 'assigned_route',
       headerName: 'Route',
 
       renderCell: params => (
         <Typography variant='body2'>
-          <LinkStyled href='/'>{params.row.route}</LinkStyled>
+          <LinkStyled href='/'>{params.row.assigned_route}</LinkStyled>
         </Typography>
       )
     },
@@ -126,7 +146,13 @@ const ManageDrivers = () => {
       renderCell: params => {
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
-            <Button variant='outlined' color='primary'>
+            <Button
+              variant='outlined'
+              color='primary'
+              onClick={() => {
+                router.push(`/driver-management/driver/view-profile?id=${params.row.id}`)
+              }}
+            >
               View Profile
             </Button>
           </Box>
@@ -135,37 +161,103 @@ const ManageDrivers = () => {
     }
   ])
 
-  const [rowCount, setRowCount] = useState(3)
+  const [rowCount, setRowCount] = useState(0)
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
   const [openDialog, setOpenDialog] = useState(false)
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false)
-  }
-
   const [phoneNumber, setPhoneNumber] = useState('')
   const [phoneNumberError, setPhoneNumberError] = useState('')
+  const [driverName, setDriverName] = useState('')
+  const [driverNameError, setDriverNameError] = useState('')
+  const [driverEmail, setDriverEmail] = useState('')
+  const [driverEmailError, setDriverEmailError] = useState('')
+  const [driverNIC, setDriverNIC] = useState('')
+  const [driverNICError, setDriverNICError] = useState('')
+  const [employeeNumber, setEmployeeNumber] = useState('')
+  const [employeeNumberError, setEmployeeNumberError] = useState('')
+  const [assignVehicle, setAssignVehicle] = useState('')
+  const [assignRoute, setAssignRoute] = useState('')
 
-  const handlePhoneNumberChange = value => {
-    const input = value.slice(0, 9)
+  const [searchValue, setSearchValue] = useState('')
+  const [filteredRows, setFilteredRows] = useState([])
+  const [filteredRowCount, setFilteredRowCount] = useState(0)
+
+  useEffect(() => {
+    setRows(rowData)
+    setRowCount(rowData.length)
+  }, [])
+
+  useEffect(() => {
+    const filteredData = rows.filter(row => {
+      return (
+        row.driver_name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.emp_no.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.assigned_vehicle.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.assigned_route.toLowerCase().includes(searchValue.toLowerCase())
+      )
+    })
+
+    setFilteredRows(filteredData)
+    setFilteredRowCount(filteredData.length)
+  }, [rows, searchValue])
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false)
+
+    setPhoneNumber('')
     setPhoneNumberError('')
-    setPhoneNumber(input)
+    setDriverName('')
+    setDriverNameError('')
+    setDriverEmail('')
+    setDriverEmailError('')
+    setDriverNIC('')
+    setDriverNICError('')
+    setEmployeeNumber('')
+    setEmployeeNumberError('')
+    setAssignVehicle('')
+    setAssignRoute('')
+  }
 
-    const firstDigit = input.charAt(0)
+  const handleAddDriver = () => {
+    if (employeeNumber === '') {
+      setEmployeeNumberError('Employee Number is required')
+    }
+    if (driverName === '') {
+      setDriverNameError('Driver Name is required')
+    }
+    if (phoneNumber === '') {
+      setPhoneNumberError('Phone Number is required')
+    }
+    if (driverNIC === '') {
+      setDriverNICError('Driver NIC is required')
+    }
 
-    if (firstDigit === '7') {
-      if (input !== '') {
-        if (input.length < 9) {
-          setPhoneNumberError('Phone number must be 9 digits')
-        } else {
-          setPhoneNumberError('')
-        }
-      } else {
-        setPhoneNumberError('')
+    if (
+      employeeNumber !== '' &&
+      driverName !== '' &&
+      phoneNumber !== '' &&
+      driverNIC !== '' &&
+      employeeNumberError === '' &&
+      driverNameError === '' &&
+      phoneNumberError === '' &&
+      driverNICError === ''
+    ) {
+      const newDriver = {
+        id: rowCount + 1,
+        emp_no: employeeNumber,
+        driver_name: driverName,
+        driver_email: driverEmail,
+        driver_phone: phoneNumber,
+        driver_nic: driverNIC,
+        assigned_vehicle: assignVehicle,
+        assigned_route: assignRoute
       }
-    } else {
-      setPhoneNumberError('Invalid phone number')
+
+      setRows([...rows, newDriver])
+      setRowCount(rowCount + 1)
+
+      handleCloseDialog()
     }
   }
 
@@ -178,6 +270,17 @@ const ManageDrivers = () => {
         <Grid item xs={12}>
           <Card>
             <CardHeader
+              title={
+                <TextField
+                  id='outlined-basic'
+                  label='Search'
+                  variant='outlined'
+                  size='small'
+                  sx={{ width: '300px' }}
+                  value={searchValue}
+                  onChange={e => setSearchValue(e.target.value)}
+                />
+              }
               action={
                 <Button
                   variant='contained'
@@ -194,8 +297,8 @@ const ManageDrivers = () => {
               <DataGrid
                 autoHeight
                 getRowHeight={() => 'auto'}
-                rows={rows}
-                rowCount={rowCount}
+                rows={searchValue.length ? filteredRows : rows}
+                rowCount={searchValue.length ? filteredRowCount : rowCount}
                 columns={columns}
                 pageSizeOptions={[5, 10, 25, 50]}
                 paginationModel={paginationModel}
@@ -227,10 +330,73 @@ const ManageDrivers = () => {
         >
           <Grid container spacing={6} sx={{ pt: 3 }}>
             <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Driver Name' variant='outlined' fullWidth />
+              <TextField
+                id='outlined-basic'
+                label='Employee Number'
+                variant='outlined'
+                fullWidth
+                required
+                value={employeeNumber}
+                onChange={e => {
+                  setEmployeeNumberError('')
+
+                  if (e.target.value.length === 0) {
+                    setEmployeeNumberError('Employee number is required')
+                  }
+
+                  setEmployeeNumber(e.target.value)
+                }}
+                error={employeeNumberError.length > 0}
+                helperText={employeeNumberError}
+              />
             </Grid>
-            <Grid item xs={6}>
-              <TextField id='outlined-basic' label='Driver Email' variant='outlined' fullWidth />
+            <Grid item xs={12}>
+              <TextField
+                id='outlined-basic'
+                label='Driver Name'
+                variant='outlined'
+                fullWidth
+                required
+                value={driverName}
+                onChange={e => {
+                  setDriverNameError('')
+
+                  if (e.target.value.length === 0) {
+                    setDriverNameError('Driver name is required')
+                  }
+
+                  setDriverName(e.target.value)
+                }}
+                error={driverNameError.length > 0}
+                helperText={driverNameError}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                id='outlined-basic'
+                label='Driver Email'
+                variant='outlined'
+                fullWidth
+                value={driverEmail}
+                onChange={e => {
+                  setDriverEmailError('')
+
+                  if (e.target.value.length === 0) {
+                    return setDriverEmail(e.target.value)
+                  }
+
+                  const email = e.target.value.trim()
+                  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+                  if (!emailPattern.test(email)) {
+                    setDriverEmailError('Invalid email format')
+                  }
+
+                  setDriverEmail(e.target.value)
+                }}
+                error={driverEmailError.length > 0}
+                helperText={driverEmailError}
+              />
             </Grid>
             <Grid item xs={6}>
               <TextField
@@ -239,23 +405,106 @@ const ManageDrivers = () => {
                 variant='outlined'
                 fullWidth
                 type='number'
-                placeholder='7xxxxxxxx'
+                placeholder='7XXXXXXXX'
                 value={phoneNumber}
-                onChange={e => handlePhoneNumberChange(e.target.value)}
+                onChange={e => {
+                  const input = e.target.value.trim().slice(0, 9)
+                  let error = ''
+
+                  if (input.length === 0) {
+                    error = 'Phone number is required'
+                  } else {
+                    const phoneNumberPattern = /^[7][0-9]{8}$/
+
+                    if (!phoneNumberPattern.test(input)) {
+                      error = 'Invalid phone number'
+                    }
+                  }
+
+                  setPhoneNumber(input)
+
+                  setPhoneNumberError(error)
+                }}
                 error={phoneNumberError.length > 0}
                 helperText={phoneNumberError}
+                required
                 InputProps={{
                   startAdornment: <Box sx={{ mr: 1 }}>+94</Box>
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField id='outlined-basic' label='Driver NIC' variant='outlined' fullWidth />
+            <Grid item xs={6}>
+              <TextField
+                id='outlined-basic'
+                label='Driver NIC'
+                variant='outlined'
+                fullWidth
+                required
+                value={driverNIC}
+                onChange={e => {
+                  const nic = e.target.value.trim()
+                  const nicPattern = /^(?:\d{9}[VvXx]|\d{12})$/
+                  let error = ''
+
+                  setDriverNICError('')
+
+                  if (nic.length === 0) {
+                    error = 'Driver NIC is required'
+                  } else if (!nicPattern.test(nic)) {
+                    error = 'Invalid NIC'
+                  }
+
+                  setDriverNICError(error)
+                  setDriverNIC(nic)
+                }}
+                error={driverNICError.length > 0}
+                helperText={driverNICError}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel id='demo-simple-select-label'>Assign Vehicle</InputLabel>
+                <Select
+                  labelId='demo-simple-select-label'
+                  id='demo-simple-select'
+                  label='Assign Vehicle'
+                  value={assignVehicle}
+                  onChange={e => setAssignVehicle(e.target.value)}
+                >
+                  <MenuItem value=''>
+                    <em>None</em>
+                  </MenuItem>
+                  <MenuItem value='CAA-5869'>CAA-5869</MenuItem>
+                  <MenuItem value='ABC-1234'>ABC-1234</MenuItem>
+                  <MenuItem value='XYZ-5678'>XYZ-5678</MenuItem>
+                  <MenuItem value='MNO-9012'>MNO-9012</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel id='demo-simple-select-label'>Assign Route</InputLabel>
+                <Select
+                  labelId='demo-simple-select-label'
+                  id='demo-simple-select'
+                  label='Assign Route'
+                  value={assignRoute}
+                  onChange={e => setAssignRoute(e.target.value)}
+                >
+                  <MenuItem value=''>
+                    <em>None</em>
+                  </MenuItem>
+                  <MenuItem value='Route 1'>Route 1</MenuItem>
+                  <MenuItem value='Route 2'>Route 2</MenuItem>
+                  <MenuItem value='Route 3'>Route 3</MenuItem>
+                  <MenuItem value='Route 4'>Route 4</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button variant='contained' sx={{ px: 4 }}>
+          <Button variant='contained' sx={{ px: 4 }} onClick={handleAddDriver}>
             Add Driver
           </Button>
         </DialogActions>

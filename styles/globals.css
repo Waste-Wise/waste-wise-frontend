@@ -22,3 +22,14 @@ code:not([class*='language-']):after {
 code[class*='language-'] {
   padding: 0;
 }
+
+/* a[href^="http://maps.google.com/maps"],
+a[href^="https://maps.google.com/maps"],
+a[href^="https://www.google.com/intl/en-US_US/help/terms_maps.html"],
+a[href^="https://www.google.com/maps"]
+{
+  display: none !important;
+}
+.gm-bundled-control .gmnoprint {
+  display: block;
+} */

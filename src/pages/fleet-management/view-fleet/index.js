@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import { DataGrid } from '@mui/x-data-grid'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Box,
   Button,
@@ -18,7 +18,8 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  FormControl
+  FormControl,
+  FormHelperText
 } from '@mui/material'
 import { Icon } from '@iconify/react'
 
@@ -33,7 +34,7 @@ import CustomChip from 'src/@core/components/mui/chip'
 import { getInitials } from 'src/@core/utils/get-initials'
 
 // ** Data Import
-import { rows } from './static-data'
+import { rowData } from './static-data'
 
 const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   top: 0,
@@ -51,16 +52,7 @@ const CustomCloseButton = styled(IconButton)(({ theme }) => ({
 }))
 
 const ViewFleet = () => {
-  // const [rows, setRows] = useState([])
-
   const [columns, setColumns] = useState([
-    {
-      flex: 0.1,
-      minWidth: 100,
-      field: 'vehicle_id',
-      headerName: 'Vehicle ID',
-      renderCell: params => <Typography variant='body2'>{params.row.vehicle_id}</Typography>
-    },
     {
       flex: 0.15,
       minWidth: 150,
@@ -68,6 +60,14 @@ const ViewFleet = () => {
       headerName: 'Vehicle Number',
 
       renderCell: params => <Typography variant='body2'>{params.row.vehicle_number}</Typography>
+    },
+    {
+      flex: 0.15,
+      minWidth: 150,
+      field: 'vehicle_type',
+      headerName: 'Vehicle Type',
+
+      renderCell: params => <Typography variant='body2'>{params.row.vehicle_type}</Typography>
     },
     {
       flex: 0.1,
@@ -102,14 +102,65 @@ const ViewFleet = () => {
 
   const [vehicleNum, setVehicleNum] = useState('')
   const [vehicleNumerror, setVehicleNumError] = useState('')
+  const [vehicleType, setVehicleType] = useState('')
+  const [vehicleTypeError, setVehicleTypeError] = useState('')
 
-  const [rowCount, setRowCount] = useState(3)
+  const [searchValue, setSearchValue] = useState('')
+
+  const [rows, setRows] = useState([])
+  const [filteredRows, setFilteredRows] = useState([])
+
+  const [rowCount, setRowCount] = useState(0)
+  const [filteredRowCount, setFilteredRowCount] = useState(0)
+
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
   const [openDialog, setOpenDialog] = useState(false)
 
+  useEffect(() => {
+    setRows(rowData)
+    setRowCount(rowData.length)
+  }, [])
+
+  useEffect(() => {
+    const filteredData = rows.filter(row => {
+      return row.vehicle_number.toLowerCase().includes(searchValue.toLowerCase())
+    })
+
+    setFilteredRows(filteredData)
+    setFilteredRowCount(filteredData.length)
+  }, [searchValue, rows])
+
   const handleCloseDialog = () => {
     setOpenDialog(false)
+
+    setVehicleNum('')
+    setVehicleNumError('')
+    setVehicleType('')
+    setVehicleTypeError('')
+  }
+
+  const handleAddVehicle = () => {
+    if (vehicleNum === '') {
+      setVehicleNumError('Vehicle Number is required')
+    }
+    if (vehicleType === '') {
+      setVehicleTypeError('Vehicle Type is required')
+    }
+
+    if (vehicleNum !== '' && vehicleType !== '' && vehicleNumerror === '' && vehicleTypeError === '') {
+      const newVehicle = {
+        id: rowCount + 1,
+        vehicle_number: vehicleNum,
+        vehicle_status: 'Inactive',
+        vehicle_type: vehicleType
+      }
+
+      setRows([...rows, newVehicle])
+      setRowCount(rowCount + 1)
+
+      handleCloseDialog()
+    }
   }
 
   return (
@@ -121,6 +172,17 @@ const ViewFleet = () => {
         <Grid item xs={12}>
           <Card>
             <CardHeader
+              title={
+                <TextField
+                  id='outlined-basic'
+                  label='Search'
+                  variant='outlined'
+                  size='small'
+                  sx={{ width: '300px' }}
+                  value={searchValue}
+                  onChange={e => setSearchValue(e.target.value)}
+                />
+              }
               action={
                 <Button
                   variant='contained'
@@ -137,9 +199,8 @@ const ViewFleet = () => {
               <DataGrid
                 autoHeight
                 getRowHeight={() => 'auto'}
-                getRowId={row => row.vehicle_id}
-                rows={rows}
-                rowCount={rowCount}
+                rows={searchValue.length > 0 ? filteredRows : rows}
+                rowCount={searchValue.length > 0 ? filteredRowCount : rowCount}
                 columns={columns}
                 pageSizeOptions={[5, 10, 25, 50]}
                 paginationModel={paginationModel}
@@ -171,14 +232,31 @@ const ViewFleet = () => {
         >
           <Grid container spacing={3} sx={{ pt: 3 }}>
             <Grid item xs={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth required error={vehicleTypeError.length > 0}>
                 <InputLabel id='demo-simple-select-label'>Vehicle Type</InputLabel>
-                <Select labelId='demo-simple-select-label' id='demo-simple-select' label='Vehicle type'>
-                  <MenuItem value={10}>Tractor</MenuItem>
-                  <MenuItem value={20}>Mini truck</MenuItem>
-                  <MenuItem value={30}>Mini Lorry</MenuItem>
-                  <MenuItem value={30}>Dimo Batta</MenuItem>
+                <Select
+                  labelId='demo-simple-select-label'
+                  id='demo-simple-select'
+                  label='Vehicle Type'
+                  value={vehicleType}
+                  onChange={e => {
+                    setVehicleType(e.target.value)
+
+                    if (e.target.value === '') {
+                      setVehicleTypeError('Vehicle Type is required')
+                    } else {
+                      setVehicleTypeError('')
+                    }
+                  }}
+                >
+                  <MenuItem value=''>
+                    <em>None</em>
+                  </MenuItem>
+                  <MenuItem value='Tractor'>Tractor</MenuItem>
+                  <MenuItem value='Mini Truck'>Mini Truck</MenuItem>
+                  <MenuItem value='Truck'>Truck</MenuItem>
                 </Select>
+                <FormHelperText>{vehicleTypeError}</FormHelperText>
               </FormControl>
             </Grid>
             <Grid item xs={6}>
@@ -188,45 +266,32 @@ const ViewFleet = () => {
                 label='Vehicle Number'
                 variant='outlined'
                 fullWidth
+                required
                 error={vehicleNumerror.length > 0}
                 helperText={vehicleNumerror}
                 onChange={e => {
-                  const input = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') // Remove non-alphanumeric characters
-                  let formattedInput = input.replace(/(\w{2,3})(\d{0,4})/, '$1-$2') // Add hyphen between characters and integers
+                  const input = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                  let formattedInput = input.replace(/^([A-Z]{2,3})-?(\d{0,4})$/, '$1-$2')
 
-                  const isValid = /^[A-Za-z]{2,3}-\d{4}$/.test(formattedInput) // Check validity
+                  const isValid = /^[A-Z]{2,3}-\d{4}$/.test(formattedInput) // Ensure exactly 4 digits after the hyphen
 
                   if (isValid) {
                     setVehicleNumError('')
                   } else {
-                    setVehicleNumError('Invalid Vehicle Number')
+                    if (formattedInput.length === 0) {
+                      setVehicleNumError('Vehicle Number is required')
+                    } else {
+                      setVehicleNumError('Invalid Vehicle Number')
+                    }
                   }
                   setVehicleNum(formattedInput)
                 }}
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel id='demo-simple-select-label'>Company Name</InputLabel>
-                <Select labelId='demo-simple-select-label' id='demo-simple-select' label='Company Name'>
-                  <MenuItem value={10}>Waste Wise</MenuItem>
-                  <MenuItem value={20}>Kaduwela Municiple Council</MenuItem>
-                  <MenuItem value={30}>Malabe Municiple Council</MenuItem>
-                  <MenuItem value={30}>Kadawatha Municiple Council</MenuItem>
-                  <MenuItem value={30}>Panadura Municiple Council</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField id='outlined-basic' label='Driver Name' variant='outlined' fullWidth />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField id='outlined-basic' label='Helper Name' variant='outlined' fullWidth />
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button variant='contained' sx={{ px: 4 }}>
+          <Button variant='contained' sx={{ px: 4 }} onClick={handleAddVehicle}>
             Add Vehicle
           </Button>
         </DialogActions>

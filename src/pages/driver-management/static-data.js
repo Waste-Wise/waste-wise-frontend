@@ -1,26 +1,35 @@
-export const rows = [
+export const rowData = [
   {
     id: 1,
-    avatar: '8.png',
-    full_name: "Sehana Vishmi",
-    email: 'sehana@wastewise.com',
-    vehicle: 'WP0CA29863U712382',
-    route: 'Panadura'
+    driver_avatar: '8.png',
+    driver_name: 'Sehana Vishmi',
+    emp_no: 'E001',
+    assigned_vehicle: 'WP0CA29863U712382',
+    assigned_route: 'Panadura',
+    driver_email: 'sehana@wastewise.com',
+    driver_phone: '0771234567',
+    driver_nic: '200001234567'
   },
   {
     id: 7,
-    avatar: '6.png',
-    full_name: 'Sanara Dias',
-    email: 'sanara@wastewise.com',
-    vehicle: '1G6KD57Y27U116319',
-    route: 'Malabe'
+    driver_avatar: '7.png',
+    driver_name: 'Dilshan Perera',
+    emp_no: 'E007',
+    assigned_vehicle: 'WP0CA29863U712382',
+    assigned_route: 'Colombo',
+    driver_email: 'dilshan@wastewise.com',
+    driver_phone: '0771234567',
+    driver_nic: '200001234567'
   },
   {
-    id: 11,
-    avatar: '7.png',
-    full_name: 'Kaveesha Karunarathna',
-    email: 'kaveesha@wastewise.com',
-    vehicle: '6G2VX12G74L558185',
-    route: 'Galle Street'
+    id: 8,
+    driver_avatar: '5.png',
+    driver_name: 'Kasun Silva',
+    emp_no: 'E008',
+    assigned_vehicle: 'WP0CA29863U712382',
+    assigned_route: 'Kandy',
+    driver_email: 'kasun@wastewise.com',
+    driver_phone: '0771234567',
+    driver_nic: '200001234567'
   }
 ]
