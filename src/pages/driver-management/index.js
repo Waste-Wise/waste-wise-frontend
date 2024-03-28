@@ -1,26 +1,29 @@
 // ** MUI Imports
-import Card from '@mui/material/Card'
-import Grid from '@mui/material/Grid'
-import Typography from '@mui/material/Typography'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
-import { DataGrid } from '@mui/x-data-grid'
-import { useEffect, useState } from 'react'
+import { Icon } from '@iconify/react'
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  CardHeader,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  Grid,
   IconButton,
-  TextField,
-  Select,
-  MenuItem,
   InputLabel,
-  FormControl
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+  CircularProgress,
+  Alert,
+  AlertTitle
 } from '@mui/material'
-import { Icon } from '@iconify/react'
+import { DataGrid } from '@mui/x-data-grid'
+import { useEffect, useState } from 'react'
 
 import Link from 'next/link'
 
@@ -32,10 +35,13 @@ import CustomAvatar from 'src/@core/components/mui/avatar'
 // ** Utils Import
 import { getInitials } from 'src/@core/utils/get-initials'
 
-// ** Data Import
-import { rowData } from './static-data'
-
 import { useRouter } from 'next/router'
+import apiDefinitions from 'src/api/apiDefinitions'
+
+import toast from 'react-hot-toast'
+import { set } from 'nprogress'
+import Avatar from 'src/@core/components/mui/avatar'
+import { border } from '@mui/system'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -84,6 +90,11 @@ const renderClient = params => {
 
 const ManageDrivers = () => {
   const router = useRouter()
+
+  const branchDetails = JSON.parse(window.localStorage.getItem('BranchDetails'))
+
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   const [rows, setRows] = useState([])
 
@@ -178,15 +189,11 @@ const ManageDrivers = () => {
   const [employeeNumberError, setEmployeeNumberError] = useState('')
   const [assignVehicle, setAssignVehicle] = useState('')
   const [assignRoute, setAssignRoute] = useState('')
+  const [profilePhoto, setProfilePhoto] = useState('/images/misc/default-photo-upload.png')
 
   const [searchValue, setSearchValue] = useState('')
   const [filteredRows, setFilteredRows] = useState([])
   const [filteredRowCount, setFilteredRowCount] = useState(0)
-
-  useEffect(() => {
-    setRows(rowData)
-    setRowCount(rowData.length)
-  }, [])
 
   useEffect(() => {
     const filteredData = rows.filter(row => {
@@ -217,7 +224,71 @@ const ManageDrivers = () => {
     setEmployeeNumberError('')
     setAssignVehicle('')
     setAssignRoute('')
+    setProfilePhoto('/images/misc/default-photo-upload.png')
   }
+
+  const handleFileUploader = () => {
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.accept = 'image/*'
+    fileInput.click()
+
+    fileInput.onchange = e => {
+      const file = e.target.files[0]
+
+      if (file) {
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+
+        reader.onload = () => {
+          setProfilePhoto(reader.result)
+        }
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!branchDetails?.branch_id) {
+      return
+    }
+
+    setLoading(true)
+    setLoadError('')
+
+    apiDefinitions
+      .getBranchDrivers(branchDetails.branch_id)
+      .then(response => {
+        if (response.status === 200) {
+          const drivers = response.data.data.map(driver => {
+            return {
+              id: driver._id,
+              driver_avatar: '8.png',
+              driver_name: driver.name,
+              emp_no: driver.empNum,
+              assigned_vehicle: 'WP0CA29863U712382',
+              assigned_route: 'Panadura',
+              driver_email: driver.email,
+              driver_phone: driver.mobileNumber,
+              driver_nic: driver.nic
+            }
+          })
+
+          setRows(drivers)
+          setRowCount(drivers.length)
+        } else {
+          toast.error('Failed to fetch drivers!')
+          setLoadError('Failed to fetch drivers!')
+        }
+      })
+      .catch(error => {
+        console.log('error', error)
+        toast.error('Failed to fetch drivers!')
+        setLoadError('Failed to fetch drivers!')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [branchDetails.branch_id])
 
   const handleAddDriver = () => {
     if (employeeNumber === '') {
@@ -294,17 +365,39 @@ const ManageDrivers = () => {
               }
             />
             <CardContent>
-              <DataGrid
-                autoHeight
-                getRowHeight={() => 'auto'}
-                rows={searchValue.length ? filteredRows : rows}
-                rowCount={searchValue.length ? filteredRowCount : rowCount}
-                columns={columns}
-                pageSizeOptions={[5, 10, 25, 50]}
-                paginationModel={paginationModel}
-                onPaginationModelChange={setPaginationModel}
-                disableRowSelectionOnClick
-              />
+              {loading ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '53vh',
+                    flexDirection: 'column'
+                  }}
+                >
+                  <CircularProgress />
+                  <Typography variant='h6' sx={{ mt: 2 }}>
+                    Loading...
+                  </Typography>
+                </Box>
+              ) : loadError.length ? (
+                <Alert severity='error'>
+                  <AlertTitle>Error</AlertTitle>
+                  {loadError}
+                </Alert>
+              ) : (
+                <DataGrid
+                  autoHeight
+                  getRowHeight={() => 'auto'}
+                  rows={searchValue.length ? filteredRows : rows}
+                  rowCount={searchValue.length ? filteredRowCount : rowCount}
+                  columns={columns}
+                  pageSizeOptions={[5, 10, 25, 50]}
+                  paginationModel={paginationModel}
+                  onPaginationModelChange={setPaginationModel}
+                  disableRowSelectionOnClick
+                />
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -328,48 +421,69 @@ const ManageDrivers = () => {
             width: '600px'
           }}
         >
-          <Grid container spacing={6} sx={{ pt: 3 }}>
-            <Grid item xs={12}>
-              <TextField
-                id='outlined-basic'
-                label='Employee Number'
-                variant='outlined'
-                fullWidth
-                required
-                value={employeeNumber}
-                onChange={e => {
-                  setEmployeeNumberError('')
-
-                  if (e.target.value.length === 0) {
-                    setEmployeeNumberError('Employee number is required')
+          <Grid container rowSpacing={8} columnSpacing={3} sx={{ pt: 3 }}>
+            <Grid item xs={4}>
+              <Avatar
+                src={profilePhoto}
+                alt='user avatar'
+                sx={{
+                  width: '120px',
+                  height: '120px',
+                  mx: 'auto',
+                  ':hover': {
+                    cursor: 'pointer'
                   }
-
-                  setEmployeeNumber(e.target.value)
                 }}
-                error={employeeNumberError.length > 0}
-                helperText={employeeNumberError}
+                onClick={handleFileUploader}
               />
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                id='outlined-basic'
-                label='Driver Name'
-                variant='outlined'
-                fullWidth
-                required
-                value={driverName}
-                onChange={e => {
-                  setDriverNameError('')
+            <Grid item xs={8}>
+              <Grid container rowSpacing={8} columnSpacing={3}>
+                <Grid item xs={12}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Employee Number'
+                    variant='outlined'
+                    fullWidth
+                    required
+                    value={employeeNumber}
+                    onChange={e => {
+                      setEmployeeNumberError('')
 
-                  if (e.target.value.length === 0) {
-                    setDriverNameError('Driver name is required')
-                  }
+                      if (e.target.value.length === 0) {
+                        setEmployeeNumberError('Employee number is required')
+                      }
 
-                  setDriverName(e.target.value)
-                }}
-                error={driverNameError.length > 0}
-                helperText={driverNameError}
-              />
+                      setEmployeeNumber(e.target.value)
+                    }}
+                    error={employeeNumberError.length > 0}
+                    helperText={employeeNumberError}
+                    size='small'
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Driver Name'
+                    variant='outlined'
+                    fullWidth
+                    required
+                    value={driverName}
+                    onChange={e => {
+                      setDriverNameError('')
+
+                      if (e.target.value.length === 0) {
+                        setDriverNameError('Driver name is required')
+                      }
+
+                      setDriverName(e.target.value)
+                    }}
+                    error={driverNameError.length > 0}
+                    helperText={driverNameError}
+                    size='small'
+                  />
+                </Grid>
+              </Grid>
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -396,6 +510,7 @@ const ManageDrivers = () => {
                 }}
                 error={driverEmailError.length > 0}
                 helperText={driverEmailError}
+                size='small'
               />
             </Grid>
             <Grid item xs={6}>
@@ -431,6 +546,7 @@ const ManageDrivers = () => {
                 InputProps={{
                   startAdornment: <Box sx={{ mr: 1 }}>+94</Box>
                 }}
+                size='small'
               />
             </Grid>
             <Grid item xs={6}>
@@ -459,10 +575,11 @@ const ManageDrivers = () => {
                 }}
                 error={driverNICError.length > 0}
                 helperText={driverNICError}
+                size='small'
               />
             </Grid>
             <Grid item xs={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size='small'>
                 <InputLabel id='demo-simple-select-label'>Assign Vehicle</InputLabel>
                 <Select
                   labelId='demo-simple-select-label'
@@ -482,7 +599,7 @@ const ManageDrivers = () => {
               </FormControl>
             </Grid>
             <Grid item xs={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size='small'>
                 <InputLabel id='demo-simple-select-label'>Assign Route</InputLabel>
                 <Select
                   labelId='demo-simple-select-label'

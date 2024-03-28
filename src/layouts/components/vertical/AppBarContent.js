@@ -16,6 +16,8 @@ const AppBarContent = props => {
   // ** Props
   const { hidden, settings, saveSettings, toggleNavVisibility } = props
 
+  const branch_details = JSON.parse(localStorage.getItem('BranchDetails'))
+
   return (
     <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <Box className='actions-left' sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
@@ -27,7 +29,7 @@ const AppBarContent = props => {
 
         {/* <ModeToggler settings={settings} saveSettings={saveSettings} /> */}
         <Typography variant='h5' color='text.primary' className='logo-text'>
-          WasteWise - Kaduwela Municipal Council
+          WasteWise - {branch_details.branch_name}
         </Typography>
       </Box>
       <Box className='actions-right' sx={{ display: 'flex', alignItems: 'center' }}>

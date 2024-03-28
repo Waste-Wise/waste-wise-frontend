@@ -35,6 +35,15 @@ const jwtConfig = {
 mock.onPost('/jwt/login').reply(request => {
   const { email, password } = JSON.parse(request.data)
 
+  const branch = {
+    branch_id: '6601180ff11198ea68de7bcb',
+    branch_name: 'Kaduwela Municipal Council'
+  }
+
+  window.localStorage.setItem('BranchDetails', JSON.stringify(branch))
+
+  // console.log('BranchDetails', branch)
+
   let error = {
     email: ['Something went wrong']
   }
