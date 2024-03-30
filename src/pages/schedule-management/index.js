@@ -20,7 +20,7 @@ import CustomChip from 'src/@core/components/mui/chip'
 import { getInitials } from 'src/@core/utils/get-initials'
 
 // ** Data Import
-import { rows } from './static-data'
+import { rows } from '../../@fake-db/mock-data/schedules'
 
 const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   top: 0,
