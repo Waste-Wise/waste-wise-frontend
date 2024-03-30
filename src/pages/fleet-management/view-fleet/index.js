@@ -1,40 +1,39 @@
 // ** MUI Imports
-import Card from '@mui/material/Card'
-import Grid from '@mui/material/Grid'
-import Typography from '@mui/material/Typography'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
-import { DataGrid } from '@mui/x-data-grid'
-import { useEffect, useState } from 'react'
+import { Icon } from '@iconify/react'
 import {
+  Alert,
+  AlertTitle,
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
-  TextField,
-  Select,
-  MenuItem,
-  InputLabel,
   FormControl,
-  FormHelperText
+  FormHelperText,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField
 } from '@mui/material'
-import { Icon } from '@iconify/react'
-
-import Link from 'next/link'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardHeader from '@mui/material/CardHeader'
+import Grid from '@mui/material/Grid'
+import Typography from '@mui/material/Typography'
+import { DataGrid } from '@mui/x-data-grid'
+import { useEffect, useState } from 'react'
 
 import { styled } from '@mui/material/styles'
 
 // ** Custom Components
 import CustomChip from 'src/@core/components/mui/chip'
+import apiDefinitions from 'src/api/apiDefinitions'
 
-// ** Utils Import
-import { getInitials } from 'src/@core/utils/get-initials'
-
-// ** Data Import
-import { rowData } from './static-data'
+import toast from 'react-hot-toast'
+import Swal from 'sweetalert2'
 
 const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   top: 0,
@@ -70,10 +69,12 @@ const ViewFleet = () => {
       renderCell: params => <Typography variant='body2'>{params.row.vehicle_type}</Typography>
     },
     {
-      flex: 0.1,
+      flex: 0.15,
       minWidth: 100,
       field: 'vehicle_status',
       headerName: 'Vehicle Status',
+      align: 'center',
+      headerAlign: 'center',
 
       renderCell: params => (
         <CustomChip
@@ -83,22 +84,42 @@ const ViewFleet = () => {
       )
     },
     {
-      flex: 0.15,
+      flex: 0.2,
       minWidth: 200,
+      headerAlign: 'center',
+      sortable: false,
+      filterable: false,
       field: 'actions',
       headerName: 'Actions',
 
       renderCell: params => {
         return (
-          <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
-            <Button variant='outlined' color='primary'>
+          <Box sx={{ display: 'flex', alignItems: 'center', my: 3, justifyContent: 'space-around', width: '100%' }}>
+            {/* <Button variant='outlined' color='primary'>
               Track Location
+            </Button> */}
+
+            <Button variant='contained' color='primary'>
+              <Icon icon='grommet-icons:map-location' fontSize={20} />
+            </Button>
+            <Button variant='contained' color='warning'>
+              <Icon icon='bi:pencil-square' fontSize={20} />
+            </Button>
+            <Button variant='contained' color='error'>
+              <Icon icon='bi:trash' fontSize={20} />
             </Button>
           </Box>
         )
       }
     }
   ])
+
+  const branchDetails = JSON.parse(window.localStorage.getItem('BranchDetails'))
+
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const [refreshData, setRefreshData] = useState(false)
 
   const [vehicleNum, setVehicleNum] = useState('')
   const [vehicleNumerror, setVehicleNumError] = useState('')
@@ -118,9 +139,42 @@ const ViewFleet = () => {
   const [openDialog, setOpenDialog] = useState(false)
 
   useEffect(() => {
-    setRows(rowData)
-    setRowCount(rowData.length)
-  }, [])
+    if (!branchDetails?.branch_id) {
+      return
+    }
+
+    setLoading(true)
+    setLoadError('')
+
+    apiDefinitions
+      .getBranchVehicles(branchDetails.branch_id)
+      .then(response => {
+        if (response.status === 200) {
+          const vehicles = response.data.data.map(vehicle => {
+            return {
+              id: vehicle._id,
+              vehicle_number: vehicle.number,
+              vehicle_status: 'Inactive',
+              vehicle_type: vehicle.type
+            }
+          })
+
+          setRows(vehicles)
+          setRowCount(vehicles.length)
+        } else {
+          toast.error('Failed to fetch vehicles!')
+          setLoadError('Failed to fetch vehicles!')
+        }
+      })
+      .catch(error => {
+        console.log('error', error)
+        toast.error('Failed to fetch vehicles!')
+        setLoadError('Failed to fetch vehicles!')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [branchDetails.branch_id, refreshData])
 
   useEffect(() => {
     const filteredData = rows.filter(row => {
@@ -150,16 +204,41 @@ const ViewFleet = () => {
 
     if (vehicleNum !== '' && vehicleType !== '' && vehicleNumerror === '' && vehicleTypeError === '') {
       const newVehicle = {
-        id: rowCount + 1,
-        vehicle_number: vehicleNum,
-        vehicle_status: 'Inactive',
-        vehicle_type: vehicleType
+        number: vehicleNum,
+        type: vehicleType
+
+        // vehicle_status: 'Inactive'
       }
 
-      setRows([...rows, newVehicle])
-      setRowCount(rowCount + 1)
-
-      handleCloseDialog()
+      Swal.fire({
+        title: 'Are you sure?',
+        text: 'Do you want to add this vehicle?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, add it!',
+        cancelButtonText: 'No, cancel!',
+        reverseButtons: true
+      }).then(result => {
+        if (result.isConfirmed) {
+          apiDefinitions
+            .addVehicleToBranch(branchDetails.branch_id, newVehicle)
+            .then(response => {
+              if (response.status === 200) {
+                toast.success('Vehicle added successfully!')
+                setRefreshData(!refreshData)
+                handleCloseDialog()
+              } else {
+                toast.error('Failed to add vehicle!')
+              }
+            })
+            .catch(error => {
+              console.log('error', error)
+              toast.error('Failed to add vehicle!')
+            })
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          Swal.fire('Cancelled', 'Vehicle not added :)', 'info')
+        }
+      })
     }
   }
 
@@ -196,17 +275,39 @@ const ViewFleet = () => {
               }
             />
             <CardContent>
-              <DataGrid
-                autoHeight
-                getRowHeight={() => 'auto'}
-                rows={searchValue.length > 0 ? filteredRows : rows}
-                rowCount={searchValue.length > 0 ? filteredRowCount : rowCount}
-                columns={columns}
-                pageSizeOptions={[5, 10, 25, 50]}
-                paginationModel={paginationModel}
-                onPaginationModelChange={setPaginationModel}
-                disableRowSelectionOnClick
-              />
+              {loading ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '53vh',
+                    flexDirection: 'column'
+                  }}
+                >
+                  <CircularProgress />
+                  <Typography variant='h6' sx={{ mt: 2 }}>
+                    Loading...
+                  </Typography>
+                </Box>
+              ) : loadError.length ? (
+                <Alert severity='error'>
+                  <AlertTitle>Error</AlertTitle>
+                  {loadError}
+                </Alert>
+              ) : (
+                <DataGrid
+                  autoHeight
+                  getRowHeight={() => 'auto'}
+                  rows={searchValue.length > 0 ? filteredRows : rows}
+                  rowCount={searchValue.length > 0 ? filteredRowCount : rowCount}
+                  columns={columns}
+                  pageSizeOptions={[5, 10, 25, 50]}
+                  paginationModel={paginationModel}
+                  onPaginationModelChange={setPaginationModel}
+                  disableRowSelectionOnClick
+                />
+              )}
             </CardContent>
           </Card>
         </Grid>

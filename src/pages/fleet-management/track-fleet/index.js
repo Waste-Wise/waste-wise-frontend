@@ -1,6 +1,18 @@
 import React, { useState } from 'react'
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api'
-import { Card, CardContent, Grid, Box, Typography, Avatar, Badge, IconButton } from '@mui/material'
+import {
+  Card,
+  CardContent,
+  Grid,
+  Box,
+  Typography,
+  Avatar,
+  Badge,
+  IconButton,
+  Alert,
+  AlertTitle,
+  CircularProgress
+} from '@mui/material'
 import { styled } from '@mui/material/styles'
 import { Icon } from '@iconify/react'
 
@@ -229,11 +241,32 @@ const TrackFleet = () => {
   })
 
   if (loadError) {
-    return <div>Error loading maps</div>
+    return (
+      <Alert severity='error'>
+        <AlertTitle>Error</AlertTitle>
+        There was an error loading the maps!
+      </Alert>
+    )
   }
 
   if (!isLoaded) {
-    return <div>Loading maps</div>
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '75vh',
+          flexDirection: 'column',
+          gap: 3
+        }}
+      >
+        <CircularProgress size={60} />
+        <Typography variant='h6' sx={{ mt: 2 }}>
+          Loading Maps...
+        </Typography>
+      </Box>
+    )
   }
 
   const handleViewportChange = viewport => {

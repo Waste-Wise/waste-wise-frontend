@@ -37,6 +37,10 @@ a[href^="https://www.google.com/maps"]
 /* Google Map Styles */
 
 /*Swal Styling*/
+.swal2-container {
+  z-index: 2000 !important;
+}
+
 .swal2-popup {
   font-size: 0.75rem !important;
   z-index: 100 !important;

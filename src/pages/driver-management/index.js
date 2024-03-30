@@ -1,11 +1,14 @@
 // ** MUI Imports
 import { Icon } from '@iconify/react'
 import {
+  Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
   CardContent,
   CardHeader,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -17,10 +20,7 @@ import {
   MenuItem,
   Select,
   TextField,
-  Typography,
-  CircularProgress,
-  Alert,
-  AlertTitle
+  Typography
 } from '@mui/material'
 import { DataGrid } from '@mui/x-data-grid'
 import { useEffect, useState } from 'react'
@@ -39,9 +39,9 @@ import { useRouter } from 'next/router'
 import apiDefinitions from 'src/api/apiDefinitions'
 
 import toast from 'react-hot-toast'
-import { set } from 'nprogress'
 import Avatar from 'src/@core/components/mui/avatar'
-import { border } from '@mui/system'
+
+import Swal from 'sweetalert2'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -195,6 +195,24 @@ const ManageDrivers = () => {
   const [filteredRows, setFilteredRows] = useState([])
   const [filteredRowCount, setFilteredRowCount] = useState(0)
 
+  const [refreshData, setRefreshData] = useState(false)
+
+  const generatePassword = () => {
+    let charset = ''
+    let newPassword = ''
+
+    charset += '!@#$%^&*()'
+    charset += '0123456789'
+    charset += 'abcdefghijklmnopqrstuvwxyz'
+    charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+    for (let i = 0; i < 12; i++) {
+      newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
+    }
+
+    return newPassword
+  }
+
   useEffect(() => {
     const filteredData = rows.filter(row => {
       return (
@@ -288,7 +306,7 @@ const ManageDrivers = () => {
       .finally(() => {
         setLoading(false)
       })
-  }, [branchDetails.branch_id])
+  }, [branchDetails.branch_id, refreshData])
 
   const handleAddDriver = () => {
     if (employeeNumber === '') {
@@ -312,23 +330,51 @@ const ManageDrivers = () => {
       employeeNumberError === '' &&
       driverNameError === '' &&
       phoneNumberError === '' &&
-      driverNICError === ''
+      driverNICError === '' &&
+      driverEmailError === ''
     ) {
       const newDriver = {
-        id: rowCount + 1,
-        emp_no: employeeNumber,
-        driver_name: driverName,
-        driver_email: driverEmail,
-        driver_phone: phoneNumber,
-        driver_nic: driverNIC,
-        assigned_vehicle: assignVehicle,
-        assigned_route: assignRoute
+        empNum: employeeNumber,
+        name: driverName,
+        email: driverEmail,
+        mobileNumber: phoneNumber,
+        nic: driverNIC,
+        password: generatePassword()
+
+        // assigned_vehicle: assignVehicle,
+        // assigned_route: assignRoute,
+        // profilePhoto: profilePhoto
       }
 
-      setRows([...rows, newDriver])
-      setRowCount(rowCount + 1)
-
-      handleCloseDialog()
+      Swal.fire({
+        title: 'Are you sure?',
+        text: 'Do you want to add this driver?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, add it!',
+        cancelButtonText: 'No, cancel!',
+        reverseButtons: true
+      }).then(result => {
+        if (result.isConfirmed) {
+          apiDefinitions
+            .addDriverToBranch(branchDetails.branch_id, newDriver)
+            .then(response => {
+              if (response.status === 200) {
+                toast.success('Driver added successfully!')
+                setRefreshData(!refreshData)
+                handleCloseDialog()
+              } else {
+                toast.error('Failed to add driver!')
+              }
+            })
+            .catch(error => {
+              console.log('error', error)
+              toast.error('Failed to add driver!')
+            })
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          Swal.fire('Cancelled', 'Driver not added :)', 'info')
+        }
+      })
     }
   }
 
