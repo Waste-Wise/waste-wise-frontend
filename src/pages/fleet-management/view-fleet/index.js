@@ -16,7 +16,8 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  TextField
+  TextField,
+  Chip
 } from '@mui/material'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -29,7 +30,6 @@ import { useEffect, useState } from 'react'
 import { styled } from '@mui/material/styles'
 
 // ** Custom Components
-import CustomChip from 'src/@core/components/mui/chip'
 import apiDefinitions from 'src/api/apiDefinitions'
 
 import toast from 'react-hot-toast'
@@ -77,9 +77,14 @@ const ViewFleet = () => {
       headerAlign: 'center',
 
       renderCell: params => (
-        <CustomChip
+        <Chip
+          variant='outlined'
           label={params.row.vehicle_status}
           color={params.row.vehicle_status === 'Active' ? 'success' : 'error'}
+          sx={{
+            textTransform: 'capitalize',
+            px: 3
+          }}
         />
       )
     },

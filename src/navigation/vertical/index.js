@@ -11,7 +11,7 @@ const navigation = () => {
       icon: 'healthicons:i-schedule-school-date-time'
     },
     {
-      title: 'Routes',
+      title: 'Manage Route',
       path: '/route-management',
       icon: 'eos-icons:route'
     },

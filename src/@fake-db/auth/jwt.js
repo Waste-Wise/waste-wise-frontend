@@ -1,55 +1,70 @@
 // ** JWT import
+import { de } from 'date-fns/locale'
 import jwt from 'jsonwebtoken'
 
 // ** Mock Adapter
 import mock from 'src/@fake-db/mock'
+import apiDefinitions from 'src/api/apiDefinitions'
 
 // ** Default AuthConfig
 import defaultAuthConfig from 'src/configs/auth'
 
 const users = [
-  {
-    id: 1,
-    role: 'admin',
-    password: 'admin',
-    fullName: 'John Doe',
-    username: 'johndoe',
-    email: 'admin@wastewise.com'
-  },
-  {
-    id: 2,
-    role: 'client',
-    password: 'client',
-    fullName: 'Jane Doe',
-    username: 'janedoe',
-    email: 'client@wastewise.com'
-  }
+  // {
+  //   id: 1,
+  //   role: 'admin',
+  //   password: 'admin',
+  //   fullName: 'John Doe',
+  //   username: 'johndoe',
+  //   email: 'admin@wastewise.com'
+  // },
+  // {
+  //   id: 2,
+  //   role: 'client',
+  //   password: 'client',
+  //   fullName: 'Jane Doe',
+  //   username: 'janedoe',
+  //   email: 'client@wastewise.com'
+  // }
 ]
 
-// ! These two secrets should be in .env file and not in any other file
-const jwtConfig = {
-  secret: process.env.NEXT_PUBLIC_JWT_SECRET,
-  expirationTime: process.env.NEXT_PUBLIC_JWT_EXPIRATION,
-  refreshTokenSecret: process.env.NEXT_PUBLIC_JWT_REFRESH_TOKEN_SECRET
-}
-mock.onPost('/jwt/login').reply(request => {
+// // ! These two secrets should be in .env file and not in any other file
+// const jwtConfig = {
+//   secret: process.env.NEXT_PUBLIC_JWT_SECRET,
+//   expirationTime: process.env.NEXT_PUBLIC_JWT_EXPIRATION,
+//   refreshTokenSecret: process.env.NEXT_PUBLIC_JWT_REFRESH_TOKEN_SECRET
+// }
+
+mock.onPost('/jwt/login').reply(async request => {
   const { email, password } = JSON.parse(request.data)
-
-  const branch = {
-    branch_id: '6601180ff11198ea68de7bcb',
-    branch_name: 'Kaduwela Municipal Council'
-  }
-
-  window.localStorage.setItem('BranchDetails', JSON.stringify(branch))
-
-  // console.log('BranchDetails', branch)
 
   let error = {
     email: ['Something went wrong']
   }
+
+  let login = apiDefinitions.login({ email, password })
+
+  let loginResponse = (await Promise.resolve(login)).data
+
+  if (loginResponse.success) {
+    const decodedToken = jwt.decode(loginResponse.token)
+
+    const userData = {
+      id: decodedToken._id,
+      email: decodedToken.email,
+      role: 'admin',
+      userRole: decodedToken.role,
+      username: decodedToken.name,
+      fullName: decodedToken.name,
+      password: password
+    }
+
+    users.push(userData)
+  }
+
   const user = users.find(u => u.email === email && u.password === password)
   if (user) {
-    const accessToken = jwt.sign({ id: user.id }, jwtConfig.secret, { expiresIn: jwtConfig.expirationTime })
+    const accessToken = loginResponse.token
 
     const response = {
       accessToken,
@@ -65,46 +80,48 @@ mock.onPost('/jwt/login').reply(request => {
     return [400, { error }]
   }
 })
-mock.onPost('/jwt/register').reply(request => {
-  if (request.data.length > 0) {
-    const { email, password, username } = JSON.parse(request.data)
-    const isEmailAlreadyInUse = users.find(user => user.email === email)
-    const isUsernameAlreadyInUse = users.find(user => user.username === username)
 
-    const error = {
-      email: isEmailAlreadyInUse ? 'This email is already in use.' : null,
-      username: isUsernameAlreadyInUse ? 'This username is already in use.' : null
-    }
-    if (!error.username && !error.email) {
-      const { length } = users
-      let lastIndex = 0
-      if (length) {
-        lastIndex = users[length - 1].id
-      }
+// mock.onPost('/jwt/register').reply(request => {
+//   if (request.data.length > 0) {
+//     const { email, password, username } = JSON.parse(request.data)
+//     const isEmailAlreadyInUse = users.find(user => user.email === email)
+//     const isUsernameAlreadyInUse = users.find(user => user.username === username)
 
-      const userData = {
-        id: lastIndex + 1,
-        email,
-        password,
-        username,
-        avatar: null,
-        fullName: '',
-        role: 'admin'
-      }
-      users.push(userData)
-      const accessToken = jwt.sign({ id: userData.id }, jwtConfig.secret)
-      const user = { ...userData }
-      delete user.password
-      const response = { accessToken }
+//     const error = {
+//       email: isEmailAlreadyInUse ? 'This email is already in use.' : null,
+//       username: isUsernameAlreadyInUse ? 'This username is already in use.' : null
+//     }
+//     if (!error.username && !error.email) {
+//       const { length } = users
+//       let lastIndex = 0
+//       if (length) {
+//         lastIndex = users[length - 1].id
+//       }
 
-      return [200, response]
-    }
+//       const userData = {
+//         id: lastIndex + 1,
+//         email,
+//         password,
+//         username,
+//         avatar: null,
+//         fullName: '',
+//         role: 'admin'
+//       }
+//       users.push(userData)
+//       const accessToken = jwt.sign({ id: userData.id }, jwtConfig.secret)
+//       const user = { ...userData }
+//       delete user.password
+//       const response = { accessToken }
 
-    return [200, { error }]
-  } else {
-    return [401, { error: 'Invalid Data' }]
-  }
-})
+//       return [200, response]
+//     }
+
+//     return [200, { error }]
+//   } else {
+//     return [401, { error: 'Invalid Data' }]
+//   }
+// })
+
 mock.onGet('/auth/me').reply(config => {
   // ** Get token from header
   // @ts-ignore

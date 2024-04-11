@@ -130,11 +130,16 @@ const ManageDrivers = () => {
       field: 'assigned_vehicle',
 
       valueGetter: params => new Date(params.value),
-      renderCell: params => (
-        <Typography variant='body2'>
-          <LinkStyled href='/'>{params.row.assigned_vehicle}</LinkStyled>
-        </Typography>
-      )
+      renderCell: params =>
+        params.row.assigned_vehicle ? (
+          <Typography variant='body2'>
+            <LinkStyled href='/'>{params.row.assigned_vehicle}</LinkStyled>
+          </Typography>
+        ) : (
+          <Typography variant='body2' sx={{ fontStyle: 'italic' }}>
+            No Vehicle Assigned
+          </Typography>
+        )
     },
     {
       flex: 0.2,
@@ -142,11 +147,16 @@ const ManageDrivers = () => {
       field: 'assigned_route',
       headerName: 'Route',
 
-      renderCell: params => (
-        <Typography variant='body2'>
-          <LinkStyled href='/'>{params.row.assigned_route}</LinkStyled>
-        </Typography>
-      )
+      renderCell: params =>
+        params.row.assigned_route ? (
+          <Typography variant='body2'>
+            <LinkStyled href='/'>{params.row.assigned_route}</LinkStyled>
+          </Typography>
+        ) : (
+          <Typography variant='body2' sx={{ fontStyle: 'italic' }}>
+            No Route Assigned
+          </Typography>
+        )
     },
     {
       flex: 0.15,
@@ -191,27 +201,13 @@ const ManageDrivers = () => {
   const [assignRoute, setAssignRoute] = useState('')
   const [profilePhoto, setProfilePhoto] = useState('/images/misc/default-photo-upload.png')
 
+  const [branchVehicles, setBranchVehicles] = useState([])
+
   const [searchValue, setSearchValue] = useState('')
   const [filteredRows, setFilteredRows] = useState([])
   const [filteredRowCount, setFilteredRowCount] = useState(0)
 
   const [refreshData, setRefreshData] = useState(false)
-
-  const generatePassword = () => {
-    let charset = ''
-    let newPassword = ''
-
-    charset += '!@#$%^&*()'
-    charset += '0123456789'
-    charset += 'abcdefghijklmnopqrstuvwxyz'
-    charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
-    for (let i = 0; i < 12; i++) {
-      newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
-    }
-
-    return newPassword
-  }
 
   useEffect(() => {
     const filteredData = rows.filter(row => {
@@ -280,11 +276,11 @@ const ManageDrivers = () => {
           const drivers = response.data.data.map(driver => {
             return {
               id: driver._id,
-              driver_avatar: '8.png',
+              driver_avatar: driver.avatar,
               driver_name: driver.name,
               emp_no: driver.empNum,
-              assigned_vehicle: 'WP0CA29863U712382',
-              assigned_route: 'Panadura',
+              assigned_vehicle: driver.asssignedVehicle,
+              assigned_route: driver.assignedRoute,
               driver_email: driver.email,
               driver_phone: driver.mobileNumber,
               driver_nic: driver.nic
@@ -305,6 +301,19 @@ const ManageDrivers = () => {
       })
       .finally(() => {
         setLoading(false)
+      })
+
+    apiDefinitions
+      .getBranchVehicles(branchDetails.branch_id)
+      .then(response => {
+        if (response.status === 200) {
+          setBranchVehicles(response.data.data)
+        } else {
+          console.log('error', response)
+        }
+      })
+      .catch(error => {
+        console.log('error', error)
       })
   }, [branchDetails.branch_id, refreshData])
 
@@ -339,11 +348,9 @@ const ManageDrivers = () => {
         email: driverEmail,
         mobileNumber: phoneNumber,
         nic: driverNIC,
-        password: generatePassword()
-
-        // assigned_vehicle: assignVehicle,
-        // assigned_route: assignRoute,
-        // profilePhoto: profilePhoto
+        assignedVehicle: assignVehicle,
+        assignedRoute: assignRoute,
+        avatar: profilePhoto === '/images/misc/default-photo-upload.png' ? '' : profilePhoto
       }
 
       Swal.fire({
@@ -637,10 +644,11 @@ const ManageDrivers = () => {
                   <MenuItem value=''>
                     <em>None</em>
                   </MenuItem>
-                  <MenuItem value='CAA-5869'>CAA-5869</MenuItem>
-                  <MenuItem value='ABC-1234'>ABC-1234</MenuItem>
-                  <MenuItem value='XYZ-5678'>XYZ-5678</MenuItem>
-                  <MenuItem value='MNO-9012'>MNO-9012</MenuItem>
+                  {branchVehicles.map(vehicle => (
+                    <MenuItem key={vehicle._id} value={vehicle._id}>
+                      {vehicle.number}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>

@@ -230,7 +230,7 @@ const TrackFleet = () => {
   const [map, setMap] = useState(null)
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyBEufS_TQGxDOSonHDsylhODFHcTzntVuY',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
     libraries
   })
 

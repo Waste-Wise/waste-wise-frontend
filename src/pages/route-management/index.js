@@ -1,31 +1,72 @@
-// ** MUI Imports
-import Card from '@mui/material/Card'
-import Grid from '@mui/material/Grid'
-import Typography from '@mui/material/Typography'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
-import { DataGrid } from '@mui/x-data-grid'
-import { useState } from 'react'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material'
 import { Icon } from '@iconify/react'
-
-import Link from 'next/link'
-
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  TextField,
+  Typography
+} from '@mui/material'
+import Autocomplete from '@mui/material/Autocomplete'
 import { styled } from '@mui/material/styles'
+import { debounce } from '@mui/material/utils'
+import { DataGrid } from '@mui/x-data-grid'
+import parse from 'autosuggest-highlight/parse'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-// ** Custom Components
+import TimelineConnector from '@mui/lab/TimelineConnector'
+import TimelineContent from '@mui/lab/TimelineContent'
+import TimelineDot from '@mui/lab/TimelineDot'
+import TimelineItem from '@mui/lab/TimelineItem'
+import TimelineSeparator from '@mui/lab/TimelineSeparator'
+
+import MuiTimeline from '@mui/lab/Timeline'
+import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd'
+import { toast } from 'react-hot-toast'
 import CustomChip from 'src/@core/components/mui/chip'
 
-// ** Utils Import
-import { getInitials } from 'src/@core/utils/get-initials'
-
-// ** Data Import
 import { rows } from '../../@fake-db/mock-data/routes'
+import { useRouter } from 'next/router'
+
+const GoogleMapsAPIKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+const Timeline = styled(MuiTimeline)({
+  paddingLeft: 0,
+  paddingRight: 0,
+  '& .MuiTimelineItem-root': {
+    width: '100%',
+    '&:before': {
+      display: 'none'
+    }
+  }
+})
+
+function loadScript(src, position, id) {
+  if (!position) {
+    return
+  }
+
+  const script = document.createElement('script')
+  script.setAttribute('async', '')
+  script.setAttribute('id', id)
+  script.src = src
+  position.appendChild(script)
+}
+
+const autocompleteService = { current: null }
 
 const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   top: 0,
   right: 0,
-  color: 'grey.500',
+  color: theme.palette.grey[500], // Changed 'grey.500' to theme.palette.grey[500]
   position: 'absolute',
   boxShadow: theme.shadows[2],
   transform: 'translate(10px, -10px)',
@@ -38,7 +79,27 @@ const CustomCloseButton = styled(IconButton)(({ theme }) => ({
 }))
 
 const ManageRoutes = () => {
-  // const [rows, setRows] = useState([])
+  const router = useRouter()
+  const [inputValueEdit, setInputValueEdit] = useState('')
+  const [optionsEdit, setOptionsEdit] = useState([])
+
+  const [routeName, setRouteName] = useState('')
+  const [routeNameError, setRouteNameError] = useState('')
+  const [routeStart, setRouteStart] = useState('')
+  const [routeStartError, setRouteStartError] = useState('')
+  const [routeEnd, setRouteEnd] = useState('')
+  const [routeEndError, setRouteEndError] = useState('')
+  const [routeDistance, setRouteDistance] = useState('')
+  const [routeDistanceError, setRouteDistanceError] = useState('')
+  const [routeDuration, setRouteDuration] = useState('')
+  const [routeDurationError, setRouteDurationError] = useState('')
+
+  const [selectedWayPoints, setSelectedWayPoints] = useState(['', ''])
+
+  const loaded = useRef(false)
+
+  const [openDialog, setOpenDialog] = useState(false)
+  const [dialogPage, setDialogPage] = useState(1)
 
   const [columns, setColumns] = useState([
     {
@@ -110,7 +171,13 @@ const ManageRoutes = () => {
       renderCell: params => {
         return (
           <Box sx={{ display: 'flex', alignItems: 'center', my: 3 }}>
-            <Button variant='outlined' color='primary'>
+            <Button
+              variant='outlined'
+              color='primary'
+              onClick={() => {
+                router.push(`/route-management/view-route?id=${params.row.route_id}&type=view`)
+              }}
+            >
               View Route
             </Button>
           </Box>
@@ -122,67 +189,251 @@ const ManageRoutes = () => {
   const [rowCount, setRowCount] = useState(3)
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
-  const [openDialog, setOpenDialog] = useState(false)
-
   const handleCloseDialog = () => {
     setOpenDialog(false)
 
+    setDialogPage(1)
     setRouteName('')
-    setRouteStart('')
-    setRouteEnd('')
-    setRouteDistance('')
-    setRouteDuration('')
-
     setRouteNameError('')
+    setRouteStart('')
     setRouteStartError('')
+    setRouteEnd('')
     setRouteEndError('')
+    setRouteDistance('')
     setRouteDistanceError('')
+    setRouteDuration('')
     setRouteDurationError('')
-
+    setSelectedWayPoints(['', ''])
+    setInputValueEdit('')
+    setOptionsEdit([])
   }
 
-  const [routeName, setRouteName] = useState('')
-  const [routeStart, setRouteStart] = useState('')
-  const [routeEnd, setRouteEnd] = useState('')
-  const [routeDistance, setRouteDistance] = useState('')
-  const [routeDuration, setRouteDuration] = useState('')
-
-  const [routeNameError, setRouteNameError] = useState('')
-  const [routeStartError, setRouteStartError] = useState('')
-  const [routeEndError, setRouteEndError] = useState('')
-  const [routeDistanceError, setRouteDistanceError] = useState('')
-  const [routeDurationError, setRouteDurationError] = useState('')
-
-  const handleRouteCreate = () => {
-    if (routeName === '') {
-      setRouteNameError('Route Name is required')
-    } else {
-      setRouteNameError('')
+  if (typeof window !== 'undefined' && !loaded.current) {
+    if (!document.querySelector('#google-maps')) {
+      loadScript(
+        `https://maps.googleapis.com/maps/api/js?key=${GoogleMapsAPIKey}&libraries=places`,
+        document.querySelector('head'),
+        'google-maps'
+      )
     }
 
-    if (routeStart === '') {
-      setRouteStartError('Route Start is required')
-    } else {
-      setRouteStartError('')
+    loaded.current = true
+  }
+
+  const fetch = useMemo(
+    () =>
+      debounce((request, callback) => {
+        autocompleteService.current.getPlacePredictions(
+          {
+            ...request,
+            componentRestrictions: { country: 'LK' }
+          },
+          callback
+        )
+      }, 400),
+    []
+  )
+
+  useEffect(() => {
+    let active = true
+
+    if (!autocompleteService.current && window.google) {
+      autocompleteService.current = new window.google.maps.places.AutocompleteService()
+    }
+    if (!autocompleteService.current) {
+      return undefined
     }
 
-    if (routeEnd === '') {
-      setRouteEndError('Route End is required')
-    } else {
-      setRouteEndError('')
+    if (inputValueEdit === '') {
+      setOptionsEdit(inputValueEdit ? [] : [])
+
+      return undefined
     }
 
-    if (routeDistance === '') {
-      setRouteDistanceError('Route Distance is required')
-    } else {
-      setRouteDistanceError('')
+    fetch({ input: inputValueEdit }, results => {
+      if (active) {
+        let newOptions = []
+
+        if (inputValueEdit) {
+          newOptions = [inputValueEdit]
+        }
+
+        if (results) {
+          newOptions = [...results]
+        }
+
+        setOptionsEdit(newOptions)
+      }
+    })
+
+    return () => {
+      active = false
+    }
+  }, [inputValueEdit, fetch])
+
+  const handleAddWayPoint = () => {
+    if (selectedWayPoints.length === 2 && selectedWayPoints[1] === '' && selectedWayPoints[0] === '') {
+      toast.error('Please fill the start and end waypoints before adding a new one')
+
+      return
     }
 
-    if (routeDuration === '') {
-      setRouteDurationError('Route Duration is required')
+    if (selectedWayPoints.length > 0 && selectedWayPoints[selectedWayPoints.length - 1] === '') {
+      toast.error('Please fill the last waypoint before adding a new one')
     } else {
-      setRouteDurationError('')
+      setSelectedWayPoints(prevWayPoints => [...prevWayPoints, ''])
+      setInputValueEdit('')
     }
+  }
+
+  const handleRemoveWayPoint = indexToRemove => {
+    setSelectedWayPoints(prevWayPoints => prevWayPoints.filter((wayPoint, index) => index !== indexToRemove))
+  }
+
+  const handleDragEnd = result => {
+    if (!result.destination) return
+
+    const reorderedWayPoints = Array.from(selectedWayPoints)
+    const [reorderedItem] = reorderedWayPoints.splice(result.source.index, 1)
+    reorderedWayPoints.splice(result.destination.index, 0, reorderedItem)
+
+    setSelectedWayPoints(reorderedWayPoints)
+  }
+
+  useEffect(() => {
+    const loadMapsScript = () => {
+      const script = document.createElement('script')
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GoogleMapsAPIKey}&libraries=places&callback=initMap`
+      script.defer = true
+      document.head.appendChild(script)
+    }
+
+    window.initMap = () => {}
+
+    window.initDistanceMatrix = () => {}
+
+    if (!window.google) {
+      loadMapsScript()
+    } else {
+      window.initMap()
+      window.initDistanceMatrix()
+    }
+  }, [])
+
+  const calculateDistanceAndDuration = async (origin, destination) => {
+    const service = new window.google.maps.DistanceMatrixService()
+    let distance = 0
+    let duration = 0
+    await service.getDistanceMatrix(
+      {
+        origins: [origin],
+        destinations: [destination],
+        travelMode: 'DRIVING'
+      },
+      (response, status) => {
+        console.log(response)
+        if (status === 'OK') {
+          // Assuming only one result is returned
+          const result = response.rows[0].elements[0]
+          distance = result.distance.value / 1000
+          duration = result.duration.value / 3600
+        } else {
+          console.error('Error fetching distance:', status)
+        }
+      }
+    )
+
+    return { distance, duration }
+  }
+
+  const calculateTotalDistanceAndDuration = async () => {
+    let totalDistance = 0
+    let totalDuration = 0
+    for (let i = 0; i < selectedWayPoints.length - 1; i++) {
+      const origin = selectedWayPoints[i].description
+      const destination = selectedWayPoints[i + 1].description
+      const { distance, duration } = await calculateDistanceAndDuration(origin, destination)
+
+      totalDistance += distance
+      totalDuration += duration
+    }
+
+    setRouteDistance(Number(totalDistance).toFixed(2))
+    setRouteDuration(Number(totalDuration).toFixed(2))
+  }
+
+  useEffect(() => {
+    // Initialize map when dialog is open and dialogPage is 2
+    if (openDialog && dialogPage === 2) {
+      console.log('Map initialized', selectedWayPoints)
+
+      const directionsService = new window.google.maps.DirectionsService()
+      const directionsRenderer = new window.google.maps.DirectionsRenderer()
+
+      const mapOptions = {
+        zoom: 8,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true,
+        scaleControl: true,
+        rotateControl: true,
+        gestureHandling: 'greedy',
+        disableDefaultUI: true
+      }
+
+      const mapInstance = new window.google.maps.Map(document.getElementById('map'), mapOptions)
+
+      directionsRenderer.setMap(mapInstance)
+
+      const wayPoints = selectedWayPoints.slice(1, -1).map(wayPoint => ({
+        location: wayPoint.description,
+        stopover: true
+      }))
+
+      const request = {
+        origin: selectedWayPoints[0].description,
+        destination: selectedWayPoints[selectedWayPoints.length - 1].description,
+        waypoints: wayPoints,
+        travelMode: 'DRIVING'
+      }
+
+      directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(result)
+        }
+      })
+    }
+  }, [openDialog, dialogPage, selectedWayPoints])
+
+  const handleSaveRoute = () => {
+    const payload = {
+      route_name: routeName,
+      route_start: routeStart,
+      route_end: routeEnd,
+      route_distance: routeDistance,
+      route_duration: routeDuration,
+      route_stops: selectedWayPoints
+    }
+
+    //get latitudes and longitudes of the waypoints using geocoder
+    const geocoder = new window.google.maps.Geocoder()
+
+    const waypoints = selectedWayPoints.map(waypoint => {
+      geocoder.geocode({ address: waypoint.description }, (results, status) => {
+        console.log(status)
+        if (status === 'OK') {
+          const lat = results[0].geometry.location.lat()
+          const lng = results[0].geometry.location.lng()
+
+          return { lat, lng }
+        }
+      })
+    })
+
+    console.log(waypoints)
+
+    console.log(payload)
   }
 
   return (
@@ -231,107 +482,348 @@ const ManageRoutes = () => {
         sx={{ '& .MuiDialog-paper': { overflow: 'visible' } }}
         scroll='paper'
       >
-        <DialogTitle variant='h5'>
-          Add New Route
+        <DialogTitle
+          variant='h5'
+          sx={{
+            pb: 0
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              px: 3
+            }}
+          >
+            <Typography
+              variant='h5'
+              sx={{
+                py: 2
+              }}
+            >
+              Add New Route
+            </Typography>
+            {dialogPage === 1 && (
+              <Button variant='contained' onClick={handleAddWayPoint} sx={{ px: 4 }}>
+                <Icon icon='mdi:plus' fontSize={20} /> Add Route Point
+              </Button>
+            )}
+          </Box>
           <CustomCloseButton aria-label='close' onClick={handleCloseDialog}>
             <Icon icon='tabler:x' fontSize='1.25rem' />
           </CustomCloseButton>
         </DialogTitle>
         <DialogContent
           sx={{
-            width: '600px'
+            width: '600px',
+            height: 'calc(100vh - 150px)',
+            overflow: 'hidden'
           }}
         >
-          <Grid container spacing={6} sx={{ pt: 3 }}>
-            <Grid item xs={12}>
-              <TextField
-                id='outlined-basic'
-                label='Route Name'
-                variant='outlined'
-                fullWidth
-                value={routeName}
-                onChange={e => {
-                  setRouteNameError('')
-                  setRouteName(e.target.value)
+          {dialogPage === 1 && (
+            <Grid container spacing={3}>
+              <Grid item xs={6} sx={{ my: 5 }}>
+                <TextField
+                  id='outlined-basic'
+                  label='Route Name'
+                  variant='outlined'
+                  fullWidth
+                  size='small'
+                  value={routeName}
+                  onChange={e => {
+                    setRouteNameError('')
+                    setRouteName(e.target.value)
+                  }}
+                  error={routeNameError.length > 0}
+                  helperText={routeNameError}
+                />
+              </Grid>
+              <Grid
+                item
+                xs={12}
+                sx={{
+                  paddingTop: '0 !important',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'flex-start',
+                  maxHeight: 'calc(100vh - 290px)',
+                  overflowY: 'auto'
                 }}
-                error={routeNameError.length > 0}
-                helperText={routeNameError}
-              />
+              >
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Timeline
+                    sx={{
+                      m: 0,
+                      p: 0
+                    }}
+                  >
+                    <Droppable droppableId='wayPoints'>
+                      {provided => (
+                        <div {...provided.droppableProps} ref={provided.innerRef}>
+                          {selectedWayPoints.map((wayPoint, index) => (
+                            <Draggable key={index} draggableId={`wayPoint-${index}`} index={index}>
+                              {provided => (
+                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                                  <TimelineItem>
+                                    <TimelineSeparator>
+                                      <TimelineDot
+                                        color={
+                                          index === 0
+                                            ? 'success'
+                                            : index === selectedWayPoints.length - 1
+                                            ? 'error'
+                                            : 'grey'
+                                        }
+                                      >
+                                        <Icon icon='mdi:map-marker' />
+                                      </TimelineDot>
+                                      {index !== selectedWayPoints.length - 1 && <TimelineConnector />}
+                                    </TimelineSeparator>
+                                    <TimelineContent sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          width: '100%',
+                                          gap: 3
+                                        }}
+                                      >
+                                        <Autocomplete
+                                          fullWidth
+                                          size='small'
+                                          id={`google-map-demo-edit-${index}`}
+                                          getOptionLabel={option =>
+                                            typeof option === 'string' ? option : option.description
+                                          }
+                                          filterOptions={x => x}
+                                          options={optionsEdit}
+                                          value={wayPoint}
+                                          noOptionsText='No locations'
+                                          onChange={(event, newValue) => {
+                                            setOptionsEdit(newValue ? [newValue, ...optionsEdit] : optionsEdit)
+                                            setSelectedWayPoints(prevWayPoints =>
+                                              prevWayPoints.map((prevWayPoint, prevIndex) =>
+                                                prevIndex === index ? newValue : prevWayPoint
+                                              )
+                                            )
+                                          }}
+                                          onFocus={() => {
+                                            setInputValueEdit(wayPoint?.description ? wayPoint.description : '')
+                                          }}
+                                          onInputChange={(event, newInputValue) => {
+                                            setInputValueEdit(newInputValue)
+                                          }}
+                                          renderInput={params => <TextField {...params} fullWidth />}
+                                          renderOption={(props, option) => {
+                                            const matches =
+                                              option.structured_formatting?.main_text_matched_substrings || []
+
+                                            const parts = parse(
+                                              option.structured_formatting?.main_text,
+                                              matches.map(match => [match.offset, match.offset + match.length])
+                                            )
+
+                                            return (
+                                              <li {...props}>
+                                                <Grid container alignItems='center'>
+                                                  <Grid item sx={{ display: 'flex', width: 44 }}>
+                                                    <LocationOnIcon sx={{ color: 'text.secondary' }} />
+                                                  </Grid>
+                                                  <Grid
+                                                    item
+                                                    sx={{ width: 'calc(100% - 44px)', wordWrap: 'break-word' }}
+                                                  >
+                                                    {parts.map((part, index) => (
+                                                      <Box
+                                                        key={index}
+                                                        component='span'
+                                                        sx={{ fontWeight: part.highlight ? 'bold' : 'regular' }}
+                                                      >
+                                                        {part.text}
+                                                      </Box>
+                                                    ))}
+                                                    <Typography variant='body2' color='text.secondary'>
+                                                      {option.structured_formatting?.secondary_text}
+                                                    </Typography>
+                                                  </Grid>
+                                                </Grid>
+                                              </li>
+                                            )
+                                          }}
+                                        />
+                                        {selectedWayPoints.length > 2 && (
+                                          <IconButton
+                                            size='small'
+                                            onClick={() => handleRemoveWayPoint(index)}
+                                            sx={{ marginLeft: 'auto' }}
+                                          >
+                                            <Icon icon='mdi:close' />
+                                          </IconButton>
+                                        )}
+                                      </Box>
+                                    </TimelineContent>
+                                  </TimelineItem>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </Timeline>
+                </DragDropContext>
+              </Grid>
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                id='outlined-basic'
-                label='Route Start'
-                variant='outlined'
-                fullWidth
-                value={routeStart}
-                onChange={e => {
-                  setRouteStartError('')
-                  setRouteStart(e.target.value)
-                }}
-                error={routeStartError.length > 0}
-                helperText={routeStartError}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                id='outlined-basic'
-                label='Route End'
-                variant='outlined'
-                fullWidth
-                value={routeEnd}
-                onChange={e => {
-                  setRouteEndError('')
-                  setRouteEnd(e.target.value)
-                }}
-                error={routeEndError.length > 0}
-                helperText={routeEndError}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                id='outlined-basic'
-                label='Distance'
-                type='number'
-                variant='outlined'
-                fullWidth
-                value={routeDistance}
-                onChange={e => {
-                  setRouteDistanceError('')
-                  setRouteDistance(e.target.value)
-                }}
-                error={routeDistanceError.length > 0}
-                helperText={routeDistanceError}
-                InputProps={{
-                  endAdornment: 'KM'
-                }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                id='outlined-basic'
-                label='Duration'
-                type='number'
-                variant='outlined'
-                fullWidth
-                value={routeDuration}
-                onChange={e => {
-                  setRouteDurationError('')
-                  setRouteDuration(e.target.value)
-                }}
-                error={routeDurationError.length > 0}
-                helperText={routeDurationError}
-                InputProps={{
-                  endAdornment: 'Hours'
-                }}
-              />
-            </Grid>
-          </Grid>
+          )}
+
+          {dialogPage === 2 && (
+            <>
+              <div id='map' style={{ width: '100%', height: '47.5%' }}></div>
+              <Grid container spacing={6} sx={{ pt: 8, overflow: 'auto' }}>
+                <Grid item xs={12}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Route Name'
+                    variant='outlined'
+                    fullWidth
+                    value={routeName}
+                    onChange={e => {
+                      setRouteNameError('')
+                      setRouteName(e.target.value)
+                    }}
+                    disabled
+                    size='small'
+                    error={routeNameError.length > 0}
+                    helperText={routeNameError}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Route Start'
+                    variant='outlined'
+                    fullWidth
+                    value={routeStart}
+                    onChange={e => {
+                      setRouteStartError('')
+                      setRouteStart(e.target.value)
+                    }}
+                    disabled
+                    size='small'
+                    error={routeStartError.length > 0}
+                    helperText={routeStartError}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Route End'
+                    variant='outlined'
+                    fullWidth
+                    value={routeEnd}
+                    onChange={e => {
+                      setRouteEndError('')
+                      setRouteEnd(e.target.value)
+                    }}
+                    disabled
+                    size='small'
+                    error={routeEndError.length > 0}
+                    helperText={routeEndError}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Distance'
+                    type='number'
+                    variant='outlined'
+                    fullWidth
+                    value={routeDistance}
+                    onChange={e => {
+                      setRouteDistanceError('')
+                      setRouteDistance(e.target.value)
+                    }}
+                    disabled
+                    size='small'
+                    error={routeDistanceError.length > 0}
+                    helperText={routeDistanceError}
+                    InputProps={{
+                      endAdornment: 'KM'
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    id='outlined-basic'
+                    label='Duration'
+                    type='number'
+                    variant='outlined'
+                    fullWidth
+                    value={routeDuration}
+                    onChange={e => {
+                      setRouteDurationError('')
+                      setRouteDuration(e.target.value)
+                    }}
+                    disabled
+                    size='small'
+                    error={routeDurationError.length > 0}
+                    helperText={routeDurationError}
+                    InputProps={{
+                      endAdornment: 'Hours'
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button variant='contained' sx={{ px: 4 }} onClick={handleRouteCreate}>
-            Add Route
-          </Button>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: dialogPage > 1 ? 'space-between' : 'flex-end',
+              width: '100%'
+            }}
+          >
+            {dialogPage > 1 && (
+              <Button variant='outlined' onClick={() => setDialogPage(prevPage => prevPage - 1)}>
+                Previous
+              </Button>
+            )}
+            {dialogPage === 1 ? (
+              <Button
+                variant='outlined'
+                onClick={() => {
+                  let error = true
+
+                  routeName === ''
+                    ? setRouteNameError('Route Name is required')
+                    : selectedWayPoints.length < 2
+                    ? toast.error('Please add at least 2 waypoints before saving the route')
+                    : selectedWayPoints[selectedWayPoints.length - 1] === ''
+                    ? toast.error('Please fill the last waypoint before saving the route')
+                    : (error = false)
+
+                  if (!error) {
+                    setRouteStart(selectedWayPoints[0].description)
+                    setRouteEnd(selectedWayPoints[selectedWayPoints.length - 1].description)
+                    calculateTotalDistanceAndDuration().then(() => {
+                      setDialogPage(prevPage => prevPage + 1)
+                    })
+                  }
+                }}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button variant='contained' onClick={handleSaveRoute}>
+                Save Route
+              </Button>
+            )}
+          </Box>
         </DialogActions>
       </Dialog>
     </>

@@ -100,7 +100,7 @@ const schema = yup.object().shape({
 })
 
 const defaultValues = {
-  password: 'admin',
+  password: 'admin@wastewise',
   email: 'admin@wastewise.com'
 }
 

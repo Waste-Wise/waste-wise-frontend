@@ -1,7 +1,16 @@
-import { api } from './apiBase'
+import { api, auth } from './apiBase'
 
 const apiDefinitions = {
+  /* Auth APIs Start */
+
+  login: async function (data) {
+    return await auth.post(`api/v1/auth/login`, data)
+  },
+
+  /* Auth APIs End */
+  /****************************************************************************/
   /* Branch APIs Start */
+
   getAllBranches: async function () {
     return await api.get(`api/v1/branches`)
   },
