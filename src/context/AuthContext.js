@@ -1,6 +1,8 @@
 // ** React Imports
 import { createContext, useEffect, useState } from 'react'
 
+import jwt from 'jsonwebtoken'
+
 // ** Next Import
 import { useRouter } from 'next/router'
 
@@ -8,6 +10,7 @@ import { useRouter } from 'next/router'
 import axios from 'axios'
 
 // ** Config
+import apiDefinitions from 'src/api/apiDefinitions'
 import authConfig from 'src/configs/auth'
 
 // ** Defaults
@@ -28,22 +31,39 @@ const AuthProvider = ({ children }) => {
 
   // ** Hooks
   const router = useRouter()
+
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = window.localStorage.getItem(authConfig.storageTokenKeyName)
+      const storedToken = window.localStorage.getItem('refreshToken')
       if (storedToken) {
         setLoading(true)
-        await axios
-          .get(authConfig.meEndpoint, {
-            headers: {
-              Authorization: storedToken
-            }
-          })
+        apiDefinitions
+          .refresh({ refresh_token: storedToken })
           .then(async response => {
+            console.log('response', response)
+            const decodedToken = jwt.decode(response.data.token)
+
+            console.log('decodedToken', decodedToken)
+
+            const userData = {
+              id: decodedToken._id,
+              email: decodedToken.email,
+              role: 'admin',
+              userRole: decodedToken.role,
+              username: decodedToken.name,
+              fullName: decodedToken.name,
+              password: ''
+            }
+
+            setUser({ ...userData })
+            window.localStorage.setItem('userData', JSON.stringify(userData))
+            window.localStorage.setItem('refreshToken', response.data.refresh_token)
+            window.localStorage.setItem('accessToken', response.data.token)
+
             setLoading(false)
-            setUser({ ...response.data.userData })
           })
-          .catch(() => {
+          .catch(err => {
+            console.log(err)
             localStorage.removeItem('userData')
             localStorage.removeItem('refreshToken')
             localStorage.removeItem('accessToken')
@@ -57,6 +77,7 @@ const AuthProvider = ({ children }) => {
         setLoading(false)
       }
     }
+
     initAuth()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -83,6 +104,7 @@ const AuthProvider = ({ children }) => {
     setUser(null)
     window.localStorage.removeItem('userData')
     window.localStorage.removeItem(authConfig.storageTokenKeyName)
+    window.localStorage.removeItem('refreshToken')
     router.push('/login')
   }
 

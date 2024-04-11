@@ -7,6 +7,10 @@ const apiDefinitions = {
     return await auth.post(`api/v1/auth/login`, data)
   },
 
+  refresh: async function (data) {
+    return await auth.post(`api/v1/auth/refresh`, data)
+  },
+
   /* Auth APIs End */
   /****************************************************************************/
   /* Branch APIs Start */

@@ -273,13 +273,13 @@ const ManageRoutes = () => {
 
   const handleAddWayPoint = () => {
     if (selectedWayPoints.length === 2 && selectedWayPoints[1] === '' && selectedWayPoints[0] === '') {
-      toast.error('Please fill the start and end waypoints before adding a new one')
+      toast.error('Please fill the start and end waypoints before adding a new one!')
 
       return
     }
 
     if (selectedWayPoints.length > 0 && selectedWayPoints[selectedWayPoints.length - 1] === '') {
-      toast.error('Please fill the last waypoint before adding a new one')
+      toast.error('Please fill the last waypoint before adding a new one!')
     } else {
       setSelectedWayPoints(prevWayPoints => [...prevWayPoints, ''])
       setInputValueEdit('')
@@ -407,33 +407,44 @@ const ManageRoutes = () => {
   }, [openDialog, dialogPage, selectedWayPoints])
 
   const handleSaveRoute = () => {
-    const payload = {
-      route_name: routeName,
-      route_start: routeStart,
-      route_end: routeEnd,
-      route_distance: routeDistance,
-      route_duration: routeDuration,
-      route_stops: selectedWayPoints
-    }
-
-    //get latitudes and longitudes of the waypoints using geocoder
     const geocoder = new window.google.maps.Geocoder()
 
-    const waypoints = selectedWayPoints.map(waypoint => {
-      geocoder.geocode({ address: waypoint.description }, (results, status) => {
-        console.log(status)
-        if (status === 'OK') {
-          const lat = results[0].geometry.location.lat()
-          const lng = results[0].geometry.location.lng()
+    const geocodePromise = waypoint => {
+      return new Promise((resolve, reject) => {
+        geocoder.geocode({ address: waypoint.description }, (results, status) => {
+          if (status === 'OK') {
+            const lat = results[0].geometry.location.lat()
+            const lng = results[0].geometry.location.lng()
 
-          return { lat, lng }
-        }
+            const position = { lat, lng }
+            resolve({ ...waypoint, position })
+          } else {
+            reject(status)
+          }
+        })
       })
-    })
+    }
 
-    console.log(waypoints)
+    const waypointsPromises = selectedWayPoints.map(waypoint => geocodePromise(waypoint))
 
-    console.log(payload)
+    Promise.all(waypointsPromises)
+      .then(waypoints => {
+        console.log(waypoints)
+
+        const payload = {
+          route_name: routeName,
+          route_start: routeStart,
+          route_end: routeEnd,
+          route_distance: routeDistance,
+          route_duration: routeDuration,
+          route_stops: waypoints // Use waypoints with geolocation
+        }
+
+        console.log('Route payload:', payload)
+      })
+      .catch(error => {
+        console.error('Geocoding error:', error)
+      })
   }
 
   return (
@@ -507,7 +518,7 @@ const ManageRoutes = () => {
             </Typography>
             {dialogPage === 1 && (
               <Button variant='contained' onClick={handleAddWayPoint} sx={{ px: 4 }}>
-                <Icon icon='mdi:plus' fontSize={20} /> Add Route Point
+                <Icon icon='mdi:plus' fontSize={20} /> Add Route Stop
               </Button>
             )}
           </Box>
@@ -519,7 +530,7 @@ const ManageRoutes = () => {
           sx={{
             width: '600px',
             height: 'calc(100vh - 150px)',
-            overflow: 'hidden'
+            overflow: dialogPage === 1 ? 'hidden' : 'auto'
           }}
         >
           {dialogPage === 1 && (
@@ -681,7 +692,13 @@ const ManageRoutes = () => {
 
           {dialogPage === 2 && (
             <>
-              <div id='map' style={{ width: '100%', height: '47.5%' }}></div>
+              <div
+                id='map'
+                style={{
+                  width: '100%',
+                  height: 'calc(100vh - 480px)'
+                }}
+              ></div>
               <Grid container spacing={6} sx={{ pt: 8, overflow: 'auto' }}>
                 <Grid item xs={12}>
                   <TextField
@@ -802,9 +819,9 @@ const ManageRoutes = () => {
                   routeName === ''
                     ? setRouteNameError('Route Name is required')
                     : selectedWayPoints.length < 2
-                    ? toast.error('Please add at least 2 waypoints before saving the route')
+                    ? toast.error('Please add at least 2 waypoints before saving the route!')
                     : selectedWayPoints[selectedWayPoints.length - 1] === ''
-                    ? toast.error('Please fill the last waypoint before saving the route')
+                    ? toast.error('Please fill the last waypoint before saving the route!')
                     : (error = false)
 
                   if (!error) {

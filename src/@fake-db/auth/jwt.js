@@ -60,6 +60,8 @@ mock.onPost('/jwt/login').reply(async request => {
     }
 
     users.push(userData)
+
+    localStorage.setItem('refreshToken', loginResponse.refresh_token)
   }
 
   const user = users.find(u => u.email === email && u.password === password)
@@ -122,58 +124,58 @@ mock.onPost('/jwt/login').reply(async request => {
 //   }
 // })
 
-mock.onGet('/auth/me').reply(config => {
-  // ** Get token from header
-  // @ts-ignore
-  const token = config.headers.Authorization
+// mock.onGet('/auth/me').reply(config => {
+//   // ** Get token from header
+//   // @ts-ignore
+//   const token = config.headers.Authorization
 
-  // ** Default response
-  let response = [200, {}]
+//   // ** Default response
+//   let response = [200, {}]
 
-  // ** Checks if the token is valid or expired
-  jwt.verify(token, jwtConfig.secret, (err, decoded) => {
-    // ** If token is expired
-    if (err) {
-      // ** If onTokenExpiration === 'logout' then send 401 error
-      if (defaultAuthConfig.onTokenExpiration === 'logout') {
-        // ** 401 response will logout user from AuthContext file
-        response = [401, { error: { error: 'Invalid User' } }]
-      } else {
-        // ** If onTokenExpiration === 'refreshToken' then generate the new token
-        const oldTokenDecoded = jwt.decode(token, { complete: true })
+//   // ** Checks if the token is valid or expired
+//   jwt.verify(token, jwtConfig.secret, (err, decoded) => {
+//     // ** If token is expired
+//     if (err) {
+//       // ** If onTokenExpiration === 'logout' then send 401 error
+//       if (defaultAuthConfig.onTokenExpiration === 'logout') {
+//         // ** 401 response will logout user from AuthContext file
+//         response = [401, { error: { error: 'Invalid User' } }]
+//       } else {
+//         // ** If onTokenExpiration === 'refreshToken' then generate the new token
+//         const oldTokenDecoded = jwt.decode(token, { complete: true })
 
-        // ** Get user id from old token
-        // @ts-ignore
-        const { id: userId } = oldTokenDecoded.payload
+//         // ** Get user id from old token
+//         // @ts-ignore
+//         const { id: userId } = oldTokenDecoded.payload
 
-        // ** Get user that matches id in token
-        const user = users.find(u => u.id === userId)
+//         // ** Get user that matches id in token
+//         const user = users.find(u => u.id === userId)
 
-        // ** Sign a new token
-        const accessToken = jwt.sign({ id: userId }, jwtConfig.secret, {
-          expiresIn: jwtConfig.expirationTime
-        })
+//         // ** Sign a new token
+//         const accessToken = jwt.sign({ id: userId }, jwtConfig.secret, {
+//           expiresIn: jwtConfig.expirationTime
+//         })
 
-        // ** Set new token in localStorage
-        window.localStorage.setItem(defaultAuthConfig.storageTokenKeyName, accessToken)
-        const obj = { userData: { ...user, password: undefined } }
+//         // ** Set new token in localStorage
+//         window.localStorage.setItem(defaultAuthConfig.storageTokenKeyName, accessToken)
+//         const obj = { userData: { ...user, password: undefined } }
 
-        // ** return 200 with user data
-        response = [200, obj]
-      }
-    } else {
-      // ** If token is valid do nothing
-      // @ts-ignore
-      const userId = decoded.id
+//         // ** return 200 with user data
+//         response = [200, obj]
+//       }
+//     } else {
+//       // ** If token is valid do nothing
+//       // @ts-ignore
+//       const userId = decoded.id
 
-      // ** Get user that matches id in token
-      const userData = JSON.parse(JSON.stringify(users.find(u => u.id === userId)))
-      delete userData.password
+//       // ** Get user that matches id in token
+//       const userData = JSON.parse(JSON.stringify(users.find(u => u.id === userId)))
+//       delete userData.password
 
-      // ** return 200 with user data
-      response = [200, { userData }]
-    }
-  })
+//       // ** return 200 with user data
+//       response = [200, { userData }]
+//     }
+//   })
 
-  return response
-})
+//   return response
+// })
