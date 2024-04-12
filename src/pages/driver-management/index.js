@@ -212,10 +212,10 @@ const ManageDrivers = () => {
   useEffect(() => {
     const filteredData = rows.filter(row => {
       return (
-        row.driver_name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.emp_no.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.assigned_vehicle.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.assigned_route.toLowerCase().includes(searchValue.toLowerCase())
+        row.driver_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.emp_no?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.assigned_vehicle?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.assigned_route?.toLowerCase().includes(searchValue.toLowerCase())
       )
     })
 
@@ -269,53 +269,57 @@ const ManageDrivers = () => {
     setLoading(true)
     setLoadError('')
 
-    apiDefinitions
-      .getBranchDrivers(branchDetails.branch_id)
-      .then(response => {
-        if (response.status === 200) {
-          const drivers = response.data.data.map(driver => {
-            return {
+    if (branchVehicles.length > 0) {
+      apiDefinitions
+        .getBranchDrivers(branchDetails.branch_id)
+        .then(response => {
+          if (response.status === 200) {
+            const drivers = response.data.data.map(driver => ({
               id: driver._id,
               driver_avatar: driver.avatar,
               driver_name: driver.name,
               emp_no: driver.empNum,
-              assigned_vehicle: driver.asssignedVehicle,
+              assigned_vehicle:
+                driver.assignedVehicle && branchVehicles?.length > 0
+                  ? branchVehicles.find(vehicle => vehicle._id === driver.assignedVehicle)?.number ||
+                    driver.assignedVehicle
+                  : '',
               assigned_route: driver.assignedRoute,
               driver_email: driver.email,
               driver_phone: driver.mobileNumber,
               driver_nic: driver.nic
-            }
-          })
+            }))
 
-          setRows(drivers)
-          setRowCount(drivers.length)
-        } else {
+            setRows(drivers)
+            setRowCount(drivers.length)
+          } else {
+            toast.error('Failed to fetch drivers!')
+            setLoadError('Failed to fetch drivers!')
+          }
+        })
+        .catch(error => {
+          console.log('error', error)
           toast.error('Failed to fetch drivers!')
           setLoadError('Failed to fetch drivers!')
-        }
-      })
-      .catch(error => {
-        console.log('error', error)
-        toast.error('Failed to fetch drivers!')
-        setLoadError('Failed to fetch drivers!')
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-
-    apiDefinitions
-      .getBranchVehicles(branchDetails.branch_id)
-      .then(response => {
-        if (response.status === 200) {
-          setBranchVehicles(response.data.data)
-        } else {
-          console.log('error', response)
-        }
-      })
-      .catch(error => {
-        console.log('error', error)
-      })
-  }, [branchDetails.branch_id, refreshData])
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    } else {
+      apiDefinitions
+        .getBranchVehicles(branchDetails.branch_id)
+        .then(response => {
+          if (response.status === 200) {
+            setBranchVehicles(response.data.data)
+          } else {
+            console.log('error', response)
+          }
+        })
+        .catch(error => {
+          console.log('error', error)
+        })
+    }
+  }, [branchDetails.branch_id, refreshData, branchVehicles])
 
   const handleAddDriver = () => {
     if (employeeNumber === '') {
