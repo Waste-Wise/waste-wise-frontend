@@ -3,8 +3,6 @@ import LocationOnIcon from '@mui/icons-material/LocationOn'
 import {
   Alert,
   AlertTitle,
-  Avatar,
-  Badge,
   Box,
   Button,
   Card,
@@ -15,11 +13,11 @@ import {
   TextField,
   Typography
 } from '@mui/material'
-import { styled } from '@mui/material/styles'
 import Autocomplete from '@mui/material/Autocomplete'
+import { styled } from '@mui/material/styles'
 import { debounce } from '@mui/material/utils'
 import parse from 'autosuggest-highlight/parse'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import MuiTimeline from '@mui/lab/Timeline'
 import TimelineConnector from '@mui/lab/TimelineConnector'
@@ -35,12 +33,6 @@ import { useRouter } from 'next/router'
 
 import { rows } from '../../../@fake-db/mock-data/view-routes'
 import RenderMap from './RenderMap'
-
-const SmallAvatar = styled(Avatar)(({ theme }) => ({
-  width: 30,
-  height: 30,
-  border: `2px solid ${theme.palette.background.paper}`
-}))
 
 const GoogleMapsAPIKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 const MAP_SCRIPT_ID = 'google-maps-script' // ID for the script element
@@ -93,26 +85,30 @@ const ViewRoute = () => {
 
   const [disableRouteDelete, setDisableRouteDelete] = useState(true)
 
-  const fetch = debounce((request, callback) => {
-    if (window.google && window.google.maps && window.google.maps.places) {
-      const autocompleteService = new window.google.maps.places.AutocompleteService()
-      autocompleteService.getPlacePredictions(
-        {
-          ...request,
-          componentRestrictions: { country: 'LK' }
-        },
-        callback
-      )
-    }
-  }, 400)
+  const fetch = useCallback(
+    debounce((request, callback) => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        const autocompleteService = new window.google.maps.places.AutocompleteService()
+        autocompleteService.getPlacePredictions(
+          {
+            ...request,
+            componentRestrictions: { country: 'LK' }
+          },
+          callback
+        )
+      }
+    }, 400),
+    []
+  )
 
   useEffect(() => {
+    console.log('useEffectCalled')
     let active = true
 
     if (inputValueEdit === '') {
       setOptionsEdit([])
 
-      return undefined
+      return () => {} // Return an empty cleanup function
     }
 
     fetch({ input: inputValueEdit }, results => {
@@ -209,6 +205,7 @@ const ViewRoute = () => {
       setRouteStart(selectedWayPoints[0]?.description)
       setRouteEnd(selectedWayPoints[selectedWayPoints.length - 1]?.description)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWayPoints])
 
   useEffect(() => {
@@ -379,7 +376,7 @@ const ViewRoute = () => {
               </Grid>
 
               <Grid item xs={12}>
-                <RenderMap selectedWayPoints={selectedWayPoints} />
+                <RenderMap selectedWayPoints={selectedWayPoints} loaded={mapLoaded} />
               </Grid>
               {viewType === 'edit' && (
                 <Grid

@@ -1,30 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types' // Import PropTypes for prop type validation
 
-const GoogleMapsAPIKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-const MAP_SCRIPT_ID = 'google-maps-script' // ID for the script element
-
-const RenderMap = ({ selectedWayPoints }) => {
-  const [mapLoaded, setMapLoaded] = useState(false)
+const RenderMap = ({ selectedWayPoints, loaded }) => {
+  //
 
   useEffect(() => {
-    const loadMapsScript = () => {
-      if (!mapLoaded && !document.getElementById(MAP_SCRIPT_ID)) {
-        const script = document.createElement('script')
-        script.id = MAP_SCRIPT_ID
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GoogleMapsAPIKey}&libraries=places`
-        script.async = true
-        script.defer = true
-        script.onload = () => setMapLoaded(true)
-        document.head.appendChild(script)
-      }
-    }
-
-    loadMapsScript()
-  }, [mapLoaded])
-
-  useEffect(() => {
-    if (mapLoaded && selectedWayPoints.length > 0) {
+    if (window.google && selectedWayPoints.length > 0) {
       const directionsService = new window.google.maps.DirectionsService()
       const directionsRenderer = new window.google.maps.DirectionsRenderer()
 
@@ -64,14 +45,15 @@ const RenderMap = ({ selectedWayPoints }) => {
         }
       })
     }
-  }, [selectedWayPoints, mapLoaded])
+  }, [selectedWayPoints, loaded])
 
   return <div id='map' style={{ width: '100%', height: '300px' }}></div>
 }
 
 // Prop type validation for selectedWayPoints
 RenderMap.propTypes = {
-  selectedWayPoints: PropTypes.array.isRequired
+  selectedWayPoints: PropTypes.array.isRequired,
+  loaded: PropTypes.bool.isRequired
 }
 
 export default RenderMap
