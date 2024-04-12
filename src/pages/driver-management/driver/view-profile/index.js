@@ -58,19 +58,19 @@ const DriverProfile = () => {
                   }}
                 >
                   <Tab
-                    icon={<Icon icon='mdi:user' fontSize={20} />}
+                    icon={<Icon icon='mdi:truck' fontSize={20} />}
                     iconPosition='start'
                     label='Assigned Vehicles'
                     value='1'
                   />
                   <Tab
-                    icon={<Icon icon='mdi:user' fontSize={20} />}
+                    icon={<Icon icon='mdi:timetable' fontSize={20} />}
                     iconPosition='start'
                     label='Assigned Schedules'
                     value='2'
                   />
                   <Tab
-                    icon={<Icon icon='mdi:user' fontSize={20} />}
+                    icon={<Icon icon='flowbite:user-settings-solid' fontSize={20} />}
                     iconPosition='start'
                     label='User Settings'
                     value='3'
