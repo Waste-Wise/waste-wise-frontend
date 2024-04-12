@@ -154,24 +154,28 @@ const AuthProvider = ({ children }) => {
         apiDefinitions
           .refresh({ refresh_token: storedToken })
           .then(async response => {
-            const decodedToken = jwt.decode(response.data.token)
+            if (response.status === 200) {
+              const decodedToken = jwt.decode(response.data.token)
 
-            const userData = {
-              id: decodedToken._id,
-              email: decodedToken.email,
-              role: 'admin',
-              userRole: decodedToken.role,
-              username: decodedToken.name,
-              fullName: decodedToken.name,
-              password: ''
+              const userData = {
+                id: decodedToken._id,
+                email: decodedToken.email,
+                role: 'admin',
+                userRole: decodedToken.role,
+                username: decodedToken.name,
+                fullName: decodedToken.name,
+                password: ''
+              }
+
+              setUser({ ...userData })
+              window.localStorage.setItem('userData', JSON.stringify(userData))
+              window.localStorage.setItem('refreshToken', response.data.refresh_token)
+              window.localStorage.setItem('accessToken', response.data.token)
+
+              setLoading(false)
+            } else {
+              throw new Error('Token expired')
             }
-
-            setUser({ ...userData })
-            window.localStorage.setItem('userData', JSON.stringify(userData))
-            window.localStorage.setItem('refreshToken', response.data.refresh_token)
-            window.localStorage.setItem('accessToken', response.data.token)
-
-            setLoading(false)
           })
           .catch(err => {
             console.log(err)
