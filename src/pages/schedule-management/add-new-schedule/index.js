@@ -29,7 +29,7 @@ const AddSchedule = () => {
               </FormControl>
             </Box>
             <Button variant='contained' onClick={() => setDrawerState(true)}>
-              Add event
+              Add Trip
             </Button>
           </Box>
         </Grid>
@@ -40,7 +40,6 @@ const AddSchedule = () => {
                 {
                   id: 1,
                   name: 'Custom Event 1',
-                  type: 'custom',
                   startTime: new Date('2018-02-23T11:30:00'),
                   endTime: new Date('2018-02-23T13:30:00')
                 }
@@ -49,7 +48,6 @@ const AddSchedule = () => {
                 {
                   id: 2,
                   name: 'Custom Event 2',
-                  type: 'custom',
                   startTime: new Date('2018-02-23T14:00:00'),
                   endTime: new Date('2018-02-23T16:00:00')
                 }
@@ -75,7 +73,61 @@ const AddSchedule = () => {
             boxSizing: 'border-box'
           }
         }}
-      ></Drawer>
+      >
+        <Box sx={{ width: 400, padding: 2 }}>
+          <Grid container spacing={6}>
+            <Grid item xs={12}>
+              <TextField id='filled-basic' label='Trip name' variant='outlined' fullWidth />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                id='datetime-local'
+                label='Trip start time'
+                type='datetime-local'
+                defaultValue='2017-05-24T10:30'
+                InputLabelProps={{
+                  shrink: true
+                }}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                id='datetime-local'
+                label='Trip end time'
+                type='datetime-local'
+                defaultValue='2017-05-24T10:30'
+                InputLabelProps={{
+                  shrink: true
+                }}
+                fullWidth
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel id='demo-simple-select-label'>Trip route</InputLabel>
+                <Select
+                  labelId='demo-simple-select-label'
+                  id='demo-simple-select'
+                  // value={age}
+                  label='Event route'
+
+                  // onChange={handleChange}
+                >
+                  <MenuItem value={10}>Ten</MenuItem>
+                  <MenuItem value={20}>Twenty</MenuItem>
+                  <MenuItem value={30}>Thirty</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <Button variant='contained' fullWidth>
+                Add trip
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Drawer>
     </>
   )
 }
