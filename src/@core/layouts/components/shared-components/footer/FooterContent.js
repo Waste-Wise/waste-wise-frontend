@@ -25,7 +25,7 @@ const FooterContent = () => {
         </Box>
         {` by `}
         <LinkStyled target='_blank' href='https://pixinvent.com/'>
-          WasteWise
+          TeamWasteWise
         </LinkStyled>
       </Typography>
       {/* {hidden ? null : (
