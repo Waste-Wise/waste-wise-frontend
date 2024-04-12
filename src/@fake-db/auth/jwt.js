@@ -61,8 +61,8 @@ mock.onPost('/jwt/login').reply(async request => {
 
     if (decodedToken.role === 'branch') {
       const branchData = {
-        branch_id: decodedToken.branchId,
-        branch_name: decodedToken.branchName
+        branch_id: decodedToken._id,
+        branch_name: decodedToken.name
       }
 
       localStorage.setItem('BranchDetails', JSON.stringify(branchData))
