@@ -175,7 +175,7 @@ const ManageRoutes = () => {
               variant='outlined'
               color='primary'
               onClick={() => {
-                router.push(`/route-management/view-route?id=${params.row.route_id}&type=view`)
+                router.push(`/route-management/view-route?id=${params.row.route_id}&viewType=view`)
               }}
             >
               View Route
@@ -331,7 +331,6 @@ const ManageRoutes = () => {
         travelMode: 'DRIVING'
       },
       (response, status) => {
-        console.log(response)
         if (status === 'OK') {
           // Assuming only one result is returned
           const result = response.rows[0].elements[0]
@@ -365,8 +364,6 @@ const ManageRoutes = () => {
   useEffect(() => {
     // Initialize map when dialog is open and dialogPage is 2
     if (openDialog && dialogPage === 2) {
-      console.log('Map initialized', selectedWayPoints)
-
       const directionsService = new window.google.maps.DirectionsService()
       const directionsRenderer = new window.google.maps.DirectionsRenderer()
 
@@ -429,8 +426,6 @@ const ManageRoutes = () => {
 
     Promise.all(waypointsPromises)
       .then(waypoints => {
-        console.log(waypoints)
-
         const payload = {
           route_name: routeName,
           route_start: routeStart,
@@ -529,7 +524,7 @@ const ManageRoutes = () => {
         <DialogContent
           sx={{
             width: '600px',
-            height: 'calc(100vh - 150px)',
+            maxHeight: 'calc(100vh - 150px)',
             overflow: dialogPage === 1 ? 'hidden' : 'auto'
           }}
         >
@@ -551,6 +546,7 @@ const ManageRoutes = () => {
                   helperText={routeNameError}
                 />
               </Grid>
+
               <Grid
                 item
                 xs={12}

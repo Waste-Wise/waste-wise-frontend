@@ -42,6 +42,7 @@ import toast from 'react-hot-toast'
 import Avatar from 'src/@core/components/mui/avatar'
 
 import Swal from 'sweetalert2'
+import { set } from 'nprogress'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -202,6 +203,7 @@ const ManageDrivers = () => {
   const [profilePhoto, setProfilePhoto] = useState('/images/misc/default-photo-upload.png')
 
   const [branchVehicles, setBranchVehicles] = useState([])
+  const [branchVehiclesError, setBranchVehiclesError] = useState('')
 
   const [searchValue, setSearchValue] = useState('')
   const [filteredRows, setFilteredRows] = useState([])
@@ -212,10 +214,10 @@ const ManageDrivers = () => {
   useEffect(() => {
     const filteredData = rows.filter(row => {
       return (
-        row.driver_name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.emp_no.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.assigned_vehicle.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.assigned_route.toLowerCase().includes(searchValue.toLowerCase())
+        row.driver_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.emp_no?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.assigned_vehicle?.toLowerCase().includes(searchValue.toLowerCase()) ||
+        row.assigned_route?.toLowerCase().includes(searchValue.toLowerCase())
       )
     })
 
@@ -269,53 +271,68 @@ const ManageDrivers = () => {
     setLoading(true)
     setLoadError('')
 
-    apiDefinitions
-      .getBranchDrivers(branchDetails.branch_id)
-      .then(response => {
-        if (response.status === 200) {
-          const drivers = response.data.data.map(driver => {
-            return {
+    if (branchVehicles.length > 0 && !branchVehiclesError.length) {
+      apiDefinitions
+        .getBranchDrivers(branchDetails.branch_id)
+        .then(response => {
+          if (response.status === 200) {
+            const drivers = response.data.data.map(driver => ({
               id: driver._id,
               driver_avatar: driver.avatar,
               driver_name: driver.name,
               emp_no: driver.empNum,
-              assigned_vehicle: driver.asssignedVehicle,
+              assigned_vehicle:
+                driver.assignedVehicle && branchVehicles?.length > 0
+                  ? branchVehicles.find(vehicle => vehicle._id === driver.assignedVehicle)?.number ||
+                    driver.assignedVehicle
+                  : '',
               assigned_route: driver.assignedRoute,
               driver_email: driver.email,
               driver_phone: driver.mobileNumber,
               driver_nic: driver.nic
-            }
-          })
+            }))
 
-          setRows(drivers)
-          setRowCount(drivers.length)
-        } else {
+            setRows(drivers)
+            setRowCount(drivers.length)
+          } else {
+            toast.error('Failed to fetch drivers!')
+            setLoadError('Failed to fetch drivers!')
+          }
+        })
+        .catch(error => {
+          console.log('error', error)
           toast.error('Failed to fetch drivers!')
           setLoadError('Failed to fetch drivers!')
-        }
-      })
-      .catch(error => {
-        console.log('error', error)
-        toast.error('Failed to fetch drivers!')
-        setLoadError('Failed to fetch drivers!')
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-
-    apiDefinitions
-      .getBranchVehicles(branchDetails.branch_id)
-      .then(response => {
-        if (response.status === 200) {
-          setBranchVehicles(response.data.data)
-        } else {
-          console.log('error', response)
-        }
-      })
-      .catch(error => {
-        console.log('error', error)
-      })
-  }, [branchDetails.branch_id, refreshData])
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    } else {
+      apiDefinitions
+        .getBranchVehicles(branchDetails.branch_id)
+        .then(response => {
+          if (response.status === 200) {
+            if (response.data.data.length > 0) {
+              setBranchVehicles(response.data.data)
+              setBranchVehiclesError('')
+            } else {
+              setBranchVehiclesError('No vehicles found')
+              throw new Error('No vehicles found')
+            }
+          } else {
+            console.log('error', response)
+            throw new Error('Failed to fetch vehicles')
+          }
+        })
+        .catch(error => {
+          console.log('error', error)
+          setBranchVehiclesError('Failed to fetch vehicles')
+          setLoadError('Failed to fetch vehicles!')
+          setLoading(false)
+        })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchDetails.branch_id, refreshData, branchVehicles])
 
   const handleAddDriver = () => {
     if (employeeNumber === '') {

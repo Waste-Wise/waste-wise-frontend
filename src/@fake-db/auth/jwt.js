@@ -59,12 +59,22 @@ mock.onPost('/jwt/login').reply(async request => {
       password: password
     }
 
+    if (decodedToken.role === 'branch') {
+      const branchData = {
+        branch_id: decodedToken._id,
+        branch_name: decodedToken.name
+      }
+
+      localStorage.setItem('BranchDetails', JSON.stringify(branchData))
+    }
+
     users.push(userData)
 
     localStorage.setItem('refreshToken', loginResponse.refresh_token)
   }
 
   const user = users.find(u => u.email === email && u.password === password)
+
   if (user) {
     const accessToken = loginResponse.token
 
