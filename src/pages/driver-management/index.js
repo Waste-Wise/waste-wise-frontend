@@ -42,6 +42,7 @@ import toast from 'react-hot-toast'
 import Avatar from 'src/@core/components/mui/avatar'
 
 import Swal from 'sweetalert2'
+import { set } from 'nprogress'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -202,6 +203,7 @@ const ManageDrivers = () => {
   const [profilePhoto, setProfilePhoto] = useState('/images/misc/default-photo-upload.png')
 
   const [branchVehicles, setBranchVehicles] = useState([])
+  const [branchVehiclesError, setBranchVehiclesError] = useState('')
 
   const [searchValue, setSearchValue] = useState('')
   const [filteredRows, setFilteredRows] = useState([])
@@ -269,7 +271,7 @@ const ManageDrivers = () => {
     setLoading(true)
     setLoadError('')
 
-    if (branchVehicles.length > 0) {
+    if (branchVehicles.length > 0 && !branchVehiclesError.length) {
       apiDefinitions
         .getBranchDrivers(branchDetails.branch_id)
         .then(response => {
@@ -310,15 +312,26 @@ const ManageDrivers = () => {
         .getBranchVehicles(branchDetails.branch_id)
         .then(response => {
           if (response.status === 200) {
-            setBranchVehicles(response.data.data)
+            if (response.data.data.length > 0) {
+              setBranchVehicles(response.data.data)
+              setBranchVehiclesError('')
+            } else {
+              setBranchVehiclesError('No vehicles found')
+              throw new Error('No vehicles found')
+            }
           } else {
             console.log('error', response)
+            throw new Error('Failed to fetch vehicles')
           }
         })
         .catch(error => {
           console.log('error', error)
+          setBranchVehiclesError('Failed to fetch vehicles')
+          setLoadError('Failed to fetch vehicles!')
+          setLoading(false)
         })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [branchDetails.branch_id, refreshData, branchVehicles])
 
   const handleAddDriver = () => {

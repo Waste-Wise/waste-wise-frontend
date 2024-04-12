@@ -1,4 +1,4 @@
-import { Card, CardContent, Grid } from '@mui/material'
+import { Avatar, Badge, Box, Card, CardContent, Grid, Typography, Button } from '@mui/material'
 import { useRouter } from 'next/router'
 
 import UserProfileHeader from './UserProfileHeader'
@@ -9,6 +9,13 @@ import Tabs from '@mui/material/Tabs'
 import { useState } from 'react'
 
 import { Icon } from '@iconify/react'
+import { styled } from '@mui/material/styles'
+
+const SmallAvatar = styled(Avatar)(({ theme }) => ({
+  width: 30,
+  height: 30,
+  border: `2px solid ${theme.palette.background.paper}`
+}))
 
 const DriverProfile = () => {
   const router = useRouter()
@@ -81,16 +88,170 @@ const DriverProfile = () => {
                 <Card
                   sx={{
                     display: 'flex',
-                    height: '100%'
+                    height: '100%',
+                    width: '100%'
                   }}
                 >
                   <CardContent
                     sx={{
                       display: 'flex',
-                      height: '100%'
+                      minHeight: 'calc(100vh - 425px )',
+                      width: '100%'
                     }}
                   >
-                    Hello
+                    {value === '1' && (
+                      <Grid container spacing={6}>
+                        <Grid item xs={6}>
+                          <Box
+                            sx={{
+                              backgroundColor: 'background.paper',
+                              borderRadius: 1,
+                              boxShadow: 5,
+                              minHeight: '100px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4,
+                              px: 4,
+                              width: '100%'
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flex: 1.35
+                              }}
+                            >
+                              <Avatar sx={{ width: 60, height: 60 }}>
+                                <Icon icon='bi:truck' width={30} height={30} />
+                              </Avatar>
+                            </Box>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                flex: 3,
+                                gap: 1
+                              }}
+                            >
+                              <Typography
+                                variant='body1'
+                                sx={{
+                                  fontWeight: 600
+                                }}
+                              >
+                                KA-01-1234
+                              </Typography>
+                              <Button variant='contained' color='error' size='small'>
+                                Unassign
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box
+                            sx={{
+                              backgroundColor: 'background.paper',
+                              borderRadius: 1,
+                              boxShadow: 5,
+                              minHeight: '100px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4,
+                              px: 4,
+                              width: '100%'
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flex: 1.35
+                              }}
+                            >
+                              <Avatar sx={{ width: 60, height: 60 }}>
+                                <Icon icon='bi:truck' width={30} height={30} />
+                              </Avatar>
+                            </Box>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                flex: 3,
+                                gap: 1
+                              }}
+                            >
+                              <Typography
+                                variant='body1'
+                                sx={{
+                                  fontWeight: 600
+                                }}
+                              >
+                                KA-01-1234
+                              </Typography>
+                              <Button variant='contained' color='error' size='small'>
+                                Unassign
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box
+                            sx={{
+                              backgroundColor: 'background.paper',
+                              borderRadius: 1,
+                              boxShadow: 5,
+                              minHeight: '100px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4,
+                              px: 4,
+                              width: '100%'
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flex: 1.35
+                              }}
+                            >
+                              <Avatar sx={{ width: 60, height: 60 }}>
+                                <Icon icon='bi:truck' width={30} height={30} />
+                              </Avatar>
+                            </Box>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                flex: 3,
+                                gap: 1
+                              }}
+                            >
+                              <Typography
+                                variant='body1'
+                                sx={{
+                                  fontWeight: 600
+                                }}
+                              >
+                                KA-01-1234
+                              </Typography>
+                              <Button variant='contained' color='error' size='small'>
+                                Unassign
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    )}
+                    {value === '2' && <div>Assigned Schedules</div>}
+                    {value === '3' && <div>User Settings</div>}
                   </CardContent>
                 </Card>
               </Grid>
