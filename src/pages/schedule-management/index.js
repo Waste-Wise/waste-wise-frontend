@@ -1,41 +1,21 @@
 // ** MUI Imports
+import { Icon } from '@iconify/react'
+import { Box, Button } from '@mui/material'
 import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import CardHeader from '@mui/material/CardHeader'
 import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
 import { DataGrid } from '@mui/x-data-grid'
 import { useState } from 'react'
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from '@mui/material'
-import { Icon, } from '@iconify/react'
-
-import Link from 'next/link'
-
-import { styled } from '@mui/material/styles'
+import { useRouter } from 'next/router'
 
 // ** Custom Components
 import CustomChip from 'src/@core/components/mui/chip'
 
-// ** Utils Import
-import { getInitials } from 'src/@core/utils/get-initials'
 
 // ** Data Import
 import { rows } from '../../@fake-db/mock-data/schedules'
-
-const CustomCloseButton = styled(IconButton)(({ theme }) => ({
-  top: 0,
-  right: 0,
-  color: 'grey.500',
-  position: 'absolute',
-  boxShadow: theme.shadows[2],
-  transform: 'translate(10px, -10px)',
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: `${theme.palette.background.paper} !important`,
-  transition: 'transform 0.25s ease-in-out, box-shadow 0.25s ease-in-out',
-  '&:hover': {
-    transform: 'translate(7px, -5px)'
-  }
-}))
 
 const ManageSchedule = () => {
   // const [rows, setRows] = useState([])
@@ -87,14 +67,9 @@ const ManageSchedule = () => {
     }
   ])
 
+  const router = useRouter()
   const [rowCount, setRowCount] = useState(3)
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
-
-  const [openDialog, setOpenDialog] = useState(false)
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false)
-  }
 
   return (
     <>
@@ -109,7 +84,7 @@ const ManageSchedule = () => {
                 <Button
                   variant='contained'
                   onClick={() => {
-                    setOpenDialog(true)
+                    router.push(`/schedule-management/add-new-schedule`)
                   }}
                 >
                   <Icon icon='mdi:plus' fontSize={20} />
@@ -134,35 +109,6 @@ const ManageSchedule = () => {
           </Card>
         </Grid>
       </Grid>
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        aria-labelledby='scroll-dialog-title'
-        aria-describedby='scroll-dialog-description'
-        sx={{ '& .MuiDialog-paper': { overflow: 'visible' } }}
-        scroll='paper'
-      >
-        <DialogTitle variant='h5'>
-          Add New Schedule
-          <CustomCloseButton aria-label='close' onClick={handleCloseDialog}>
-            <Icon icon='tabler:x' fontSize='1.25rem' />
-          </CustomCloseButton>
-        </DialogTitle>
-        <DialogContent
-          sx={{
-            width: '600px'
-          }}
-        >
-          <Grid container spacing={3} sx={{ pt: 1 }}>
-            <Grid item xs={12}></Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button variant='contained' sx={{ px: 4 }}>
-            Add Schedule
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   )
 }
