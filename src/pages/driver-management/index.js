@@ -24,7 +24,6 @@ import {
 } from '@mui/material'
 import { styled, useTheme } from '@mui/material/styles'
 import { DataGrid } from '@mui/x-data-grid'
-import { MuiOtpInput } from 'mui-one-time-password-input'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
@@ -38,6 +37,11 @@ import Swal from 'sweetalert2'
 import jwt from 'jsonwebtoken'
 
 import smsApi from '../../api/sendSMS'
+
+import OtpInput from 'react-otp-input'
+
+// import { MuiOtpInput } from 'mui-one-time-password-input'
+// const { MuiOtpInput } = require('mui-one-time-password-input')
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -1003,11 +1007,10 @@ const ManageDrivers = () => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              px: 6
+              justifyContent: 'center'
             }}
           >
-            <MuiOtpInput
+            {/* <MuiOtpInput
               value={otp}
               onChange={value => {
                 setOtpError('')
@@ -1015,13 +1018,61 @@ const ManageDrivers = () => {
               }}
               autoFocus
               length={6}
+            /> */}
+            <OtpInput
+              value={otp}
+              onChange={value => {
+                setOtpError('')
+                setOtp(value)
+              }}
+              numInputs={6}
+              renderInput={props => (
+                <input
+                  {...props}
+                  style={{
+                    height: '50px',
+                    width: '50px',
+                    fontSize: '1.25rem',
+                    textAlign: 'center',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                    margin: '0 10px',
+                    color: '#595959'
+                  }}
+                />
+              )}
+              inputType='tel'
+              onPaste={e => {
+                //handle paste
+                e.preventDefault()
+
+                const pastedData = e.clipboardData.getData('Text')
+                const otpArray = pastedData.split('')
+                let otpValue = ''
+
+                otpArray.forEach((otp, index) => {
+                  if (index < 6) {
+                    otpValue += otp
+                  }
+
+                  if (index === 5) {
+                    setOtp(otpValue)
+                  }
+
+                  if (otpValue.length === 6) {
+                    return
+                  }
+                })
+              }}
+              shouldAutoFocus
             />
             <Box
               sx={{
                 display: 'flex',
                 justifyContent: 'flex-start',
                 alignItems: 'center',
-                width: '100%'
+                width: '100%',
+                px: 15
               }}
             >
               {otpError.length > 0 && (
@@ -1039,6 +1090,7 @@ const ManageDrivers = () => {
                   setPhoneNumberError('')
                   setOtpSent(false)
                   setOtpDialog(false)
+                  setOtp('')
                 } else {
                   setOtpError('Invalid OTP! Please try again.')
                 }
