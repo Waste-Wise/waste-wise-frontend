@@ -159,7 +159,7 @@ const ViewFleet = () => {
             return {
               id: vehicle._id,
               vehicle_number: vehicle.number,
-              vehicle_status: 'Inactive',
+              vehicle_status: vehicle.isDriverAssigned ? 'Active' : 'Inactive',
               vehicle_type: vehicle.type
             }
           })
@@ -228,7 +228,7 @@ const ViewFleet = () => {
           apiDefinitions
             .addVehicleToBranch(branchDetails.branch_id, newVehicle)
             .then(response => {
-              if (response.status === 200) {
+              if (response.status === 201) {
                 toast.success('Vehicle added successfully!')
                 setRefreshData(!refreshData)
                 handleCloseDialog()

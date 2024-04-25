@@ -17,7 +17,6 @@ const AddSchedule = () => {
                 <Select
                   labelId='demo-simple-select-label'
                   id='demo-simple-select'
-                  // value={age}
                   label='Age'
 
                   // onChange={handleChange}
@@ -39,17 +38,26 @@ const AddSchedule = () => {
               monday: [
                 {
                   id: 1,
-                  name: 'Custom Event 1',
+                  name: 'Route No - Route Name',
                   startTime: new Date('2018-02-23T11:30:00'),
-                  endTime: new Date('2018-02-23T13:30:00')
+                  endTime: new Date('2018-02-23T13:30:00'),
+                  assignedRoute: 'route id'
                 }
               ],
               tuesday: [
                 {
                   id: 2,
-                  name: 'Custom Event 2',
+                  name: 'Route No - Route Name',
                   startTime: new Date('2018-02-23T14:00:00'),
-                  endTime: new Date('2018-02-23T16:00:00')
+                  endTime: new Date('2018-02-23T16:00:00'),
+                  assignedRoute: 'route id'
+                },
+                {
+                  id: 3,
+                  name: 'Route No - Route Name',
+                  startTime: new Date('2018-02-23T17:00:00'),
+                  endTime: new Date('2018-02-23T18:30:00'),
+                  assignedRoute: 'route id'
                 }
               ],
               wednesday: [],
@@ -109,7 +117,6 @@ const AddSchedule = () => {
                 <Select
                   labelId='demo-simple-select-label'
                   id='demo-simple-select'
-                  // value={age}
                   label='Event route'
 
                   // onChange={handleChange}

@@ -22,27 +22,22 @@ import {
   TextField,
   Typography
 } from '@mui/material'
+import { styled, useTheme } from '@mui/material/styles'
 import { DataGrid } from '@mui/x-data-grid'
-import { useEffect, useState } from 'react'
-
+import { MuiOtpInput } from 'mui-one-time-password-input'
 import Link from 'next/link'
-
-import { styled } from '@mui/material/styles'
-
-// ** Custom Components
-import CustomAvatar from 'src/@core/components/mui/avatar'
-
-// ** Utils Import
-import { getInitials } from 'src/@core/utils/get-initials'
-
 import { useRouter } from 'next/router'
-import apiDefinitions from 'src/api/apiDefinitions'
-
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import Avatar from 'src/@core/components/mui/avatar'
-
+import { default as Avatar, default as CustomAvatar } from 'src/@core/components/mui/avatar'
+import { getInitials } from 'src/@core/utils/get-initials'
+import apiDefinitions from 'src/api/apiDefinitions'
+import themeConfig from 'src/configs/themeConfig'
 import Swal from 'sweetalert2'
-import { set } from 'nprogress'
+
+import jwt from 'jsonwebtoken'
+
+import smsApi from '../../api/sendSMS'
 
 const LinkStyled = styled(Link)(({ theme }) => ({
   textDecoration: 'none',
@@ -73,13 +68,9 @@ const renderClient = params => {
   const stateNum = Math.floor(Math.random() * 6)
   const states = ['success', 'error', 'warning', 'info', 'primary', 'secondary']
   const color = states[stateNum]
+
   if (row?.driver_avatar?.length) {
-    return (
-      <CustomAvatar
-        src={`/images/avatars/${row.driver_avatar}`}
-        sx={{ mr: 3, width: '1.875rem', height: '1.875rem' }}
-      />
-    )
+    return <CustomAvatar src={row.driver_avatar} sx={{ mr: 3, width: '1.875rem', height: '1.875rem' }} />
   } else {
     return (
       <CustomAvatar skin='light' color={color} sx={{ mr: 3, fontSize: '.8rem', width: '1.875rem', height: '1.875rem' }}>
@@ -91,8 +82,20 @@ const renderClient = params => {
 
 const ManageDrivers = () => {
   const router = useRouter()
+  const theme = useTheme()
 
   const branchDetails = JSON.parse(window.localStorage.getItem('BranchDetails'))
+
+  const [generatedOTP, setGeneratedOTP] = useState('123456')
+
+  const [otp, setOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpVerified, setOtpVerified] = useState(false)
+  const [otpCountDown, setOtpCountDown] = useState(60)
+  const [otpCount, setOtpCount] = useState(0)
+  const [otpError, setOtpError] = useState('')
+
+  const [smsToken, setSmsToken] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -145,17 +148,17 @@ const ManageDrivers = () => {
     {
       flex: 0.2,
       minWidth: 110,
-      field: 'assigned_route',
-      headerName: 'Route',
+      field: 'assigned_schedule',
+      headerName: 'Schedule',
 
       renderCell: params =>
-        params.row.assigned_route ? (
+        params.row.assigned_schedule ? (
           <Typography variant='body2'>
-            <LinkStyled href='/'>{params.row.assigned_route}</LinkStyled>
+            <LinkStyled href='/'>{params.row.assigned_schedule}</LinkStyled>
           </Typography>
         ) : (
           <Typography variant='body2' sx={{ fontStyle: 'italic' }}>
-            No Route Assigned
+            No Schedule Assigned
           </Typography>
         )
     },
@@ -187,6 +190,7 @@ const ManageDrivers = () => {
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
   const [openDialog, setOpenDialog] = useState(false)
+  const [otpDialog, setOtpDialog] = useState(false)
 
   const [phoneNumber, setPhoneNumber] = useState('')
   const [phoneNumberError, setPhoneNumberError] = useState('')
@@ -199,7 +203,7 @@ const ManageDrivers = () => {
   const [employeeNumber, setEmployeeNumber] = useState('')
   const [employeeNumberError, setEmployeeNumberError] = useState('')
   const [assignVehicle, setAssignVehicle] = useState('')
-  const [assignRoute, setAssignRoute] = useState('')
+  const [assignSchedule, setAssignSchedule] = useState('')
   const [profilePhoto, setProfilePhoto] = useState('/images/misc/default-photo-upload.png')
 
   const [branchVehicles, setBranchVehicles] = useState([])
@@ -217,7 +221,7 @@ const ManageDrivers = () => {
         row.driver_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
         row.emp_no?.toLowerCase().includes(searchValue.toLowerCase()) ||
         row.assigned_vehicle?.toLowerCase().includes(searchValue.toLowerCase()) ||
-        row.assigned_route?.toLowerCase().includes(searchValue.toLowerCase())
+        row.assigned_schedule?.toLowerCase().includes(searchValue.toLowerCase())
       )
     })
 
@@ -239,8 +243,24 @@ const ManageDrivers = () => {
     setEmployeeNumber('')
     setEmployeeNumberError('')
     setAssignVehicle('')
-    setAssignRoute('')
+    setAssignSchedule('')
     setProfilePhoto('/images/misc/default-photo-upload.png')
+
+    setOtp('')
+    setOtpSent(false)
+    setOtpVerified(false)
+    setOtpCountDown('')
+    setOtpCount(0)
+    setOtpError('')
+  }
+
+  const handleCloseDialogOTP = () => {
+    setOtpDialog(false)
+    setOtp('')
+    setOtpError('')
+    setOtpCountDown('')
+    setOtpCount(0)
+    setOtpSent(false)
   }
 
   const handleFileUploader = () => {
@@ -286,7 +306,7 @@ const ManageDrivers = () => {
                   ? branchVehicles.find(vehicle => vehicle._id === driver.assignedVehicle)?.number ||
                     driver.assignedVehicle
                   : '',
-              assigned_route: driver.assignedRoute,
+              assigned_schedule: driver.assignedSchedule,
               driver_email: driver.email,
               driver_phone: driver.mobileNumber,
               driver_nic: driver.nic
@@ -335,17 +355,27 @@ const ManageDrivers = () => {
   }, [branchDetails.branch_id, refreshData, branchVehicles])
 
   const handleAddDriver = () => {
+    let error = false
     if (employeeNumber === '') {
       setEmployeeNumberError('Employee Number is required')
+      error = true
     }
     if (driverName === '') {
       setDriverNameError('Driver Name is required')
+      error = true
     }
     if (phoneNumber === '') {
       setPhoneNumberError('Phone Number is required')
+      error = true
     }
     if (driverNIC === '') {
       setDriverNICError('Driver NIC is required')
+      error = true
+    }
+
+    if (!otpVerified) {
+      setPhoneNumberError('Please verify your phone number!')
+      error = true
     }
 
     if (
@@ -357,7 +387,8 @@ const ManageDrivers = () => {
       driverNameError === '' &&
       phoneNumberError === '' &&
       driverNICError === '' &&
-      driverEmailError === ''
+      driverEmailError === '' &&
+      !error
     ) {
       const newDriver = {
         empNum: employeeNumber,
@@ -366,8 +397,11 @@ const ManageDrivers = () => {
         mobileNumber: phoneNumber,
         nic: driverNIC,
         assignedVehicle: assignVehicle,
-        assignedRoute: assignRoute,
-        avatar: profilePhoto === '/images/misc/default-photo-upload.png' ? '' : profilePhoto
+
+        // assignedSchedule: assignSchedule,
+        assignedSchedule: '66261dbd56cfa838630729a7',
+        avatar: profilePhoto === '/images/misc/default-photo-upload.png' ? '' : profilePhoto,
+        password: driverNIC
       }
 
       Swal.fire({
@@ -383,17 +417,82 @@ const ManageDrivers = () => {
           apiDefinitions
             .addDriverToBranch(branchDetails.branch_id, newDriver)
             .then(response => {
-              if (response.status === 200) {
-                toast.success('Driver added successfully!')
+              if (response.status === 201) {
+                // toast.success('Driver added successfully!')
                 setRefreshData(!refreshData)
                 handleCloseDialog()
+
+                const smsMsg = `Thank you for registering to WasteWise. Your login credentials are as follows: \nUsername: ${phoneNumber}\nPassword: ${driverNIC}\nPlease change your password after logging in.`
+
+                const tokenExpiry = jwt.decode(smsToken).exp
+
+                if (tokenExpiry < Date.now() / 1000) {
+                  smsApi
+                    .login()
+                    .then(token => {
+                      setSmsToken(token)
+                      smsApi
+                        .sendSMS(phoneNumber, smsMsg, token)
+                        .then(response => {
+                          if (response.status === 200) {
+                            Swal.fire(
+                              'Registration Success!',
+                              'Driver has been registered successfully! Login credentials has been sent to Driver.',
+                              'success'
+                            )
+                          } else {
+                            throw new Error('Failed to send SMS!')
+                          }
+                        })
+                        .catch(error => {
+                          console.log('error', error)
+                          throw new Error('Failed to send SMS!')
+                        })
+                    })
+                    .catch(error => {
+                      console.log('error', error)
+
+                      Swal.fire(
+                        'Registration Success!',
+                        'Driver has been registered successfully! Failed to send SMS.',
+                        'error'
+                      )
+                    })
+                } else {
+                  smsApi
+                    .sendSMS(phoneNumber, smsMsg, smsToken)
+                    .then(response => {
+                      if (response.status === 200) {
+                        Swal.fire(
+                          'Registration Success!',
+                          'Driver has been registered successfully! Login credentials has been sent to Driver.',
+                          'success'
+                        )
+                      } else {
+                        throw new Error('Failed to send SMS!')
+                      }
+                    })
+                    .catch(error => {
+                      console.log('error', error)
+
+                      Swal.fire(
+                        'Registration Success!',
+                        'Driver has been registered successfully! Failed to send SMS.',
+                        'error'
+                      )
+                    })
+                }
               } else {
-                toast.error('Failed to add driver!')
+                throw new Error('Failed to add driver!')
               }
             })
             .catch(error => {
               console.log('error', error)
-              toast.error('Failed to add driver!')
+              Swal.fire(
+                'Error!',
+                `Failed to add driver! ${error?.response?.data?.message ? error?.response?.data?.message : error}`,
+                'error'
+              )
             })
         } else if (result.dismiss === Swal.DismissReason.cancel) {
           Swal.fire('Cancelled', 'Driver not added :)', 'info')
@@ -401,6 +500,65 @@ const ManageDrivers = () => {
       })
     }
   }
+
+  const sendOTP = () => {
+    //generate random 6 digit number
+    const newOTP = Math.floor(100000 + Math.random() * 900000)
+    console.log('OTP:', newOTP)
+
+    setGeneratedOTP(newOTP)
+
+    const otpMsg = `Your OTP for WasteWise is ${newOTP}. Please do not share this with anyone.`
+
+    /* Comment following when uncommenting SMS code */
+    // setOtpSent(true)
+    // setOtpCount(otpCount + 1)
+    // setOtpCountDown(60 * (otpCount + 1))
+    // setOtpDialog(true)
+
+    //send OTP to the phone number
+    smsApi
+      .login()
+      .then(token => {
+        setSmsToken(token)
+        smsApi
+          .sendSMS(phoneNumber, otpMsg, token)
+          .then(response => {
+            if (response.status === 200) {
+              setOtpSent(true)
+              setOtpCount(otpCount + 1)
+              setOtpCountDown(60 * (otpCount + 1))
+              setOtpDialog(true)
+            } else {
+              throw new Error('Failed to send OTP!')
+            }
+          })
+          .catch(error => {
+            console.log('error', error)
+            toast.error('Failed to send OTP!')
+          })
+      })
+      .catch(error => {
+        console.log('error', error)
+        toast.error('Failed to send OTP!')
+      })
+  }
+
+  useEffect(() => {
+    if (otpSent) {
+      if (otpCountDown === 0) {
+        setOtpCountDown('')
+        setOtpSent(false)
+      } else {
+        const interval = setInterval(() => {
+          setOtpCountDown(otpCountDown => otpCountDown - 1)
+        }, 1000)
+
+        return () => clearInterval(interval)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpCountDown, otpSent])
 
   return (
     <>
@@ -555,7 +713,7 @@ const ManageDrivers = () => {
                 </Grid>
               </Grid>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={8}>
               <TextField
                 id='outlined-basic'
                 label='Driver Email'
@@ -583,43 +741,7 @@ const ManageDrivers = () => {
                 size='small'
               />
             </Grid>
-            <Grid item xs={6}>
-              <TextField
-                id='outlined-basic'
-                label='Driver Phone Number'
-                variant='outlined'
-                fullWidth
-                type='number'
-                placeholder='7XXXXXXXX'
-                value={phoneNumber}
-                onChange={e => {
-                  const input = e.target.value.trim().slice(0, 9)
-                  let error = ''
-
-                  if (input.length === 0) {
-                    error = 'Phone number is required'
-                  } else {
-                    const phoneNumberPattern = /^[7][0-9]{8}$/
-
-                    if (!phoneNumberPattern.test(input)) {
-                      error = 'Invalid phone number'
-                    }
-                  }
-
-                  setPhoneNumber(input)
-
-                  setPhoneNumberError(error)
-                }}
-                error={phoneNumberError.length > 0}
-                helperText={phoneNumberError}
-                required
-                InputProps={{
-                  startAdornment: <Box sx={{ mr: 1 }}>+94</Box>
-                }}
-                size='small'
-              />
-            </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={4}>
               <TextField
                 id='outlined-basic'
                 label='Driver NIC'
@@ -648,6 +770,74 @@ const ManageDrivers = () => {
                 size='small'
               />
             </Grid>
+            <Grid item xs={8}>
+              <TextField
+                id='outlined-basic'
+                label='Driver Phone Number'
+                variant='outlined'
+                fullWidth
+                type='number'
+                placeholder='7XXXXXXXX'
+                disabled={otpVerified || otpSent}
+                value={phoneNumber}
+                onChange={e => {
+                  const input = e.target.value.trim().slice(0, 9)
+                  let error = ''
+
+                  if (input.length === 0) {
+                    error = 'Phone number is required'
+                  } else {
+                    const phoneNumberPattern = /^[7][0-9]{8}$/
+
+                    if (!phoneNumberPattern.test(input)) {
+                      error = 'Invalid phone number'
+                    }
+                  }
+
+                  setPhoneNumber(input)
+
+                  setPhoneNumberError(error)
+                }}
+                error={phoneNumberError.length > 0}
+                helperText={
+                  phoneNumberError.length > 0 ? (
+                    phoneNumberError
+                  ) : otpVerified ? (
+                    <Link
+                      href='/'
+                      onClick={e => {
+                        e.preventDefault()
+                        setOtpVerified(false)
+                      }}
+                    >
+                      <Typography variant='caption'>Change Number?</Typography>
+                    </Link>
+                  ) : null
+                }
+                required
+                InputProps={{
+                  startAdornment: <Box sx={{ mr: 1 }}>+94</Box>
+                }}
+                size='small'
+              />
+            </Grid>
+            <Grid item xs={4}>
+              <Button
+                fullWidth
+                variant='contained'
+                disabled={
+                  otpVerified ||
+                  otpSent ||
+                  (phoneNumberError.length > 0 && !phoneNumberError === 'Please verify your phone number!') ||
+                  phoneNumber.length !== 9
+                }
+                onClick={() => {
+                  sendOTP()
+                }}
+              >
+                {otpVerified ? 'OTP Verified' : 'Send OTP'}
+              </Button>
+            </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth size='small'>
                 <InputLabel id='demo-simple-select-label'>Assign Vehicle</InputLabel>
@@ -671,21 +861,21 @@ const ManageDrivers = () => {
             </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth size='small'>
-                <InputLabel id='demo-simple-select-label'>Assign Route</InputLabel>
+                <InputLabel id='demo-simple-select-label'>Assign Schedule</InputLabel>
                 <Select
                   labelId='demo-simple-select-label'
                   id='demo-simple-select'
-                  label='Assign Route'
-                  value={assignRoute}
-                  onChange={e => setAssignRoute(e.target.value)}
+                  label='Assign Schedule'
+                  value={assignSchedule}
+                  onChange={e => setAssignSchedule(e.target.value)}
                 >
                   <MenuItem value=''>
                     <em>None</em>
                   </MenuItem>
-                  <MenuItem value='Route 1'>Route 1</MenuItem>
-                  <MenuItem value='Route 2'>Route 2</MenuItem>
-                  <MenuItem value='Route 3'>Route 3</MenuItem>
-                  <MenuItem value='Route 4'>Route 4</MenuItem>
+                  <MenuItem value='Schedule 1'>Schedule 1</MenuItem>
+                  <MenuItem value='Schedule 2'>Schedule 2</MenuItem>
+                  <MenuItem value='Schedule 3'>Schedule 3</MenuItem>
+                  <MenuItem value='Schedule 4'>Schedule 4</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -696,6 +886,188 @@ const ManageDrivers = () => {
             Add Driver
           </Button>
         </DialogActions>
+      </Dialog>
+      <Dialog
+        open={otpDialog}
+        onClose={handleCloseDialogOTP}
+        aria-labelledby='scroll-dialog-title'
+        aria-describedby='scroll-dialog-description'
+        sx={{ '& .MuiDialog-paper': { overflow: 'visible' } }}
+        scroll='paper'
+      >
+        <DialogTitle variant='h5'>
+          <CustomCloseButton aria-label='close' onClick={handleCloseDialogOTP}>
+            <Icon icon='tabler:x' fontSize='1.25rem' />
+          </CustomCloseButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+            <Box
+              sx={{
+                transform: 'rotate(180deg)'
+              }}
+            >
+              <svg width={80} fill='none' height={70} viewBox='0 0 268 150' xmlns='http://www.w3.org/2000/svg'>
+                <rect
+                  rx='25.1443'
+                  width='50.2886'
+                  height='143.953'
+                  fill={theme.palette.primary.main}
+                  transform='matrix(-0.865206 0.501417 0.498585 0.866841 195.571 0)'
+                />
+                <rect
+                  rx='25.1443'
+                  width='50.2886'
+                  height='143.953'
+                  fillOpacity='0.4'
+                  fill='url(#paint0_linear_7821_79167)'
+                  transform='matrix(-0.865206 0.501417 0.498585 0.866841 196.084 0)'
+                />
+                <rect
+                  rx='25.1443'
+                  width='50.2886'
+                  height='143.953'
+                  fill={theme.palette.primary.main}
+                  transform='matrix(0.865206 0.501417 -0.498585 0.866841 173.147 0)'
+                />
+                <rect
+                  rx='25.1443'
+                  width='50.2886'
+                  height='143.953'
+                  fill={theme.palette.primary.main}
+                  transform='matrix(-0.865206 0.501417 0.498585 0.866841 94.1973 0)'
+                />
+                <rect
+                  rx='25.1443'
+                  width='50.2886'
+                  height='143.953'
+                  fillOpacity='0.4'
+                  fill='url(#paint1_linear_7821_79167)'
+                  transform='matrix(-0.865206 0.501417 0.498585 0.866841 94.1973 0)'
+                />
+                <rect
+                  rx='25.1443'
+                  width='50.2886'
+                  height='143.953'
+                  fill={theme.palette.primary.main}
+                  transform='matrix(0.865206 0.501417 -0.498585 0.866841 71.7728 0)'
+                />
+                <defs>
+                  <linearGradient
+                    y1='0'
+                    x1='25.1443'
+                    x2='25.1443'
+                    y2='143.953'
+                    id='paint0_linear_7821_79167'
+                    gradientUnits='userSpaceOnUse'
+                  >
+                    <stop />
+                    <stop offset='1' stopOpacity='0' />
+                  </linearGradient>
+                  <linearGradient
+                    y1='0'
+                    x1='25.1443'
+                    x2='25.1443'
+                    y2='143.953'
+                    id='paint1_linear_7821_79167'
+                    gradientUnits='userSpaceOnUse'
+                  >
+                    <stop />
+                    <stop offset='1' stopOpacity='0' />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </Box>
+            <Typography variant='h5' sx={{ ml: 2, lineHeight: 1, fontWeight: 700, fontSize: '1.5rem !important' }}>
+              {themeConfig.templateName}
+            </Typography>
+          </Box>
+          <Box sx={{ mb: 6, px: 6 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <Typography variant='h5'>Two Step Verification</Typography>
+              <img src='/images/misc/mobile-phone-with-arrow.webp' alt='sms' width='35' />
+            </Box>
+            <Typography sx={{ color: 'text.secondary' }}>
+              We sent a verification code to your mobile. Enter the code from the mobile in the field below.
+            </Typography>
+            <Typography sx={{ mt: 2, fontWeight: 700 }}>******{phoneNumber.slice(-4)}</Typography>
+          </Box>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              px: 6
+            }}
+          >
+            <MuiOtpInput
+              value={otp}
+              onChange={value => {
+                setOtpError('')
+                setOtp(value)
+              }}
+              autoFocus
+              length={6}
+            />
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                width: '100%'
+              }}
+            >
+              {otpError.length > 0 && (
+                <Typography sx={{ color: 'error.main', mt: 2, mb: 2, textAlign: 'center' }}>{otpError}</Typography>
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 6, px: 10 }}>
+            <Button
+              variant='contained'
+              fullWidth
+              onClick={() => {
+                if (otp == generatedOTP) {
+                  setOtpVerified(true)
+                  setPhoneNumberError('')
+                  setOtpSent(false)
+                  setOtpDialog(false)
+                } else {
+                  setOtpError('Invalid OTP! Please try again.')
+                }
+              }}
+            >
+              Verify OTP
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', my: 3, px: 6 }}>
+            <Typography variant='body2' sx={{ color: 'text.secondary' }}>
+              Didn't get the code? &nbsp;
+            </Typography>
+            {otpCountDown > 0 ? (
+              <Typography variant='body2' sx={{ color: 'text.secondary' }}>
+                Resend in {otpCountDown}s
+              </Typography>
+            ) : (
+              <LinkStyled
+                href='/'
+                onClick={e => {
+                  e.preventDefault()
+                  sendOTP()
+                }}
+              >
+                Resend OTP
+              </LinkStyled>
+            )}
+          </Box>
+        </DialogContent>
       </Dialog>
     </>
   )
