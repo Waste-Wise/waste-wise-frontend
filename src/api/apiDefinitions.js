@@ -101,9 +101,39 @@ const apiDefinitions = {
 
   deleteDriver: async function (id) {
     return await api.delete(`api/v1/drivers/${id}`)
-  }
+  },
 
   /* Driver APIs End */
+  /***************************************************************************/
+  /* Schedule APIs Start */
+
+  getAllSchedulesByBranch: async function (branchId) {
+    return await api.get(`api/v1/branches/${branchId}/schedules`)
+  },
+
+  /* Schedule APIs End */
+  /***************************************************************************/
+  /* Route APIs Start */
+
+  getAllRoutes: async function (branchId) {
+    return await api.get(`api/v1/branches/${branchId}/routes`)
+  },
+
+  getRouteById: async function (branchId, routeId) {
+    return await api.get(`api/v1/branches/${branchId}/routes/${routeId}`)
+  },
+
+  createRoute: async function (branchId, data) {
+    return await api.post(`api/v1/branches/${branchId}/routes/create`, data)
+  },
+
+  updateRoute: async function (branchId, routeId, data) {
+    return await api.patch(`api/v1/branches/${branchId}/routes/${routeId}`, data)
+  },
+
+  deleteRoute: async function (branchId, routeId) {
+    return await api.delete(`api/v1/branches/${branchId}/routes/${routeId}`)
+  }
 }
 
 export default apiDefinitions

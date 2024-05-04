@@ -2,7 +2,7 @@ import React from 'react'
 import { Box, Typography } from '@mui/material'
 import { Icon } from '@iconify/react'
 
-const DriverAbout = () => {
+const DriverAbout = ({ driverDetails }) => {
   return (
     <Box
       sx={{
@@ -41,7 +41,7 @@ const DriverAbout = () => {
               Name:
             </Typography>
             <Typography variant='body2' sx={{ color: 'text.secondary' }}>
-              Kaveeja Perera
+              {driverDetails?.name}
             </Typography>
           </Box>
         </Box>
@@ -62,7 +62,7 @@ const DriverAbout = () => {
               Employee ID:
             </Typography>
             <Typography variant='body2' sx={{ color: 'text.secondary' }}>
-              EMP002
+              {driverDetails?.empNum}
             </Typography>
           </Box>
         </Box>
@@ -83,7 +83,7 @@ const DriverAbout = () => {
               NIC:
             </Typography>
             <Typography variant='body2' sx={{ color: 'text.secondary' }}>
-              123456789V
+              {driverDetails?.nic}
             </Typography>
           </Box>
         </Box>
@@ -112,7 +112,7 @@ const DriverAbout = () => {
               Email:
             </Typography>
             <Typography variant='body2' sx={{ color: 'text.secondary' }}>
-              kaveeja@wastewise.com
+              {driverDetails?.email}
             </Typography>
           </Box>
         </Box>
@@ -133,7 +133,7 @@ const DriverAbout = () => {
               Phone:
             </Typography>
             <Typography variant='body2' sx={{ color: 'text.secondary' }}>
-              0771234567
+              {driverDetails?.mobileNumber}
             </Typography>
           </Box>
         </Box>

@@ -149,23 +149,24 @@ const ManageDrivers = () => {
           </Typography>
         )
     },
-    {
-      flex: 0.2,
-      minWidth: 110,
-      field: 'assigned_schedule',
-      headerName: 'Schedule',
 
-      renderCell: params =>
-        params.row.assigned_schedule ? (
-          <Typography variant='body2'>
-            <LinkStyled href='/'>{params.row.assigned_schedule}</LinkStyled>
-          </Typography>
-        ) : (
-          <Typography variant='body2' sx={{ fontStyle: 'italic' }}>
-            No Schedule Assigned
-          </Typography>
-        )
-    },
+    // {
+    //   flex: 0.2,
+    //   minWidth: 110,
+    //   field: 'assigned_schedule',
+    //   headerName: 'Schedule',
+
+    //   renderCell: params =>
+    //     params.row.assigned_schedule ? (
+    //       <Typography variant='body2'>
+    //         <LinkStyled href='/'>{params.row.assigned_schedule}</LinkStyled>
+    //       </Typography>
+    //     ) : (
+    //       <Typography variant='body2' sx={{ fontStyle: 'italic' }}>
+    //         No Schedule Assigned
+    //       </Typography>
+    //     )
+    // },
     {
       flex: 0.15,
       minWidth: 100,
@@ -218,6 +219,8 @@ const ManageDrivers = () => {
   const [filteredRowCount, setFilteredRowCount] = useState(0)
 
   const [refreshData, setRefreshData] = useState(false)
+
+  const [branchSchedules, setBranchSchedules] = useState([])
 
   useEffect(() => {
     const filteredData = rows.filter(row => {
@@ -295,68 +298,79 @@ const ManageDrivers = () => {
     setLoading(true)
     setLoadError('')
 
-    if (branchVehicles.length > 0 && !branchVehiclesError.length) {
-      apiDefinitions
-        .getBranchDrivers(branchDetails.branch_id)
-        .then(response => {
-          if (response.status === 200) {
-            const drivers = response.data.data.map(driver => ({
-              id: driver._id,
-              driver_avatar: driver.avatar,
-              driver_name: driver.name,
-              emp_no: driver.empNum,
-              assigned_vehicle:
-                driver.assignedVehicle && branchVehicles?.length > 0
-                  ? branchVehicles.find(vehicle => vehicle._id === driver.assignedVehicle)?.number ||
-                    driver.assignedVehicle
-                  : '',
-              assigned_schedule: driver.assignedSchedule,
-              driver_email: driver.email,
-              driver_phone: driver.mobileNumber,
-              driver_nic: driver.nic
-            }))
+    apiDefinitions
+      .getBranchDrivers(branchDetails.branch_id)
+      .then(response => {
+        if (response.status === 200) {
+          const drivers = response.data.data.map(driver => ({
+            id: driver._id,
+            driver_avatar: driver.avatar,
+            driver_name: driver.name,
+            emp_no: driver.empNum,
+            assigned_vehicle: driver.assignedVehicle?.number,
+            assigned_schedule: driver.assignedSchedule,
+            driver_email: driver.email,
+            driver_phone: driver.mobileNumber,
+            driver_nic: driver.nic
+          }))
 
-            setRows(drivers)
-            setRowCount(drivers.length)
-          } else {
-            toast.error('Failed to fetch drivers!')
-            setLoadError('Failed to fetch drivers!')
-          }
-        })
-        .catch(error => {
-          console.log('error', error)
+          setRows(drivers)
+          setRowCount(drivers.length)
+        } else {
           toast.error('Failed to fetch drivers!')
           setLoadError('Failed to fetch drivers!')
-        })
-        .finally(() => {
-          setLoading(false)
-        })
-    } else {
-      apiDefinitions
-        .getBranchVehicles(branchDetails.branch_id)
-        .then(response => {
-          if (response.status === 200) {
-            if (response.data.data.length > 0) {
-              setBranchVehicles(response.data.data)
-              setBranchVehiclesError('')
-            } else {
-              setBranchVehiclesError('No vehicles found')
-              throw new Error('No vehicles found')
-            }
+        }
+      })
+      .catch(error => {
+        console.log('error', error)
+        toast.error('Failed to fetch drivers!')
+        setLoadError('Failed to fetch drivers!')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+
+    apiDefinitions
+      .getBranchVehicles(branchDetails.branch_id)
+      .then(response => {
+        if (response.status === 200) {
+          if (response.data.data.length > 0) {
+            setBranchVehicles(response.data.data)
+            setBranchVehiclesError('')
           } else {
-            console.log('error', response)
-            throw new Error('Failed to fetch vehicles')
+            setBranchVehiclesError('No vehicles found')
+            throw new Error('No vehicles found')
           }
-        })
-        .catch(error => {
-          console.log('error', error)
-          setBranchVehiclesError('Failed to fetch vehicles')
-          setLoadError('Failed to fetch vehicles!')
-          setLoading(false)
-        })
-    }
+        } else {
+          console.log('error', response)
+          throw new Error('Failed to fetch vehicles')
+        }
+      })
+      .catch(error => {
+        console.log('error', error)
+        setBranchVehiclesError('Failed to fetch vehicles')
+        setLoadError('Failed to fetch vehicles!')
+        setLoading(false)
+      })
+
+    apiDefinitions
+      .getAllSchedulesByBranch(branchDetails.branch_id)
+      .then(response => {
+        if (response.status === 200) {
+          setBranchSchedules(response.data.data)
+        } else {
+          console.log('error', response)
+          throw new Error('Failed to fetch schedules')
+        }
+      })
+      .catch(error => {
+        console.log('error', error)
+        setLoadError('Failed to fetch schedules!')
+        setLoading(false)
+      })
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchDetails.branch_id, refreshData, branchVehicles])
+  }, [branchDetails.branch_id, refreshData])
 
   const handleAddDriver = () => {
     let error = false
@@ -401,9 +415,7 @@ const ManageDrivers = () => {
         mobileNumber: phoneNumber,
         nic: driverNIC,
         assignedVehicle: assignVehicle,
-
-        // assignedSchedule: assignSchedule,
-        assignedSchedule: '66261dbd56cfa838630729a7',
+        assignedSchedule: assignSchedule,
         avatar: profilePhoto === '/images/misc/default-photo-upload.png' ? '' : profilePhoto,
         password: driverNIC
       }
@@ -426,9 +438,9 @@ const ManageDrivers = () => {
                 setRefreshData(!refreshData)
                 handleCloseDialog()
 
-                const smsMsg = `Thank you for registering to WasteWise. Your login credentials are as follows: \nUsername: ${phoneNumber}\nPassword: ${driverNIC}\nPlease change your password after logging in.`
+                const smsMsg = `Thank you for registering to WasteWise. Your login credentials are as follows: \nUsername: ${phoneNumber}\nPassword: ${driverNIC}`
 
-                const tokenExpiry = jwt.decode(smsToken).exp
+                const tokenExpiry = jwt.decode(smsToken)?.exp
 
                 if (tokenExpiry < Date.now() / 1000) {
                   smsApi
@@ -520,7 +532,7 @@ const ManageDrivers = () => {
     // setOtpCountDown(60 * (otpCount + 1))
     // setOtpDialog(true)
 
-    //send OTP to the phone number
+    // send OTP to the phone number
     smsApi
       .login()
       .then(token => {
@@ -842,7 +854,7 @@ const ManageDrivers = () => {
                 {otpVerified ? 'OTP Verified' : 'Send OTP'}
               </Button>
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12}>
               <FormControl fullWidth size='small'>
                 <InputLabel id='demo-simple-select-label'>Assign Vehicle</InputLabel>
                 <Select
@@ -855,15 +867,18 @@ const ManageDrivers = () => {
                   <MenuItem value=''>
                     <em>None</em>
                   </MenuItem>
-                  {branchVehicles.map(vehicle => (
-                    <MenuItem key={vehicle._id} value={vehicle._id}>
-                      {vehicle.number}
-                    </MenuItem>
-                  ))}
+                  {branchVehicles.map(
+                    vehicle =>
+                      !vehicle.isDriverAssigned && (
+                        <MenuItem key={vehicle._id} value={vehicle._id}>
+                          {vehicle.number}
+                        </MenuItem>
+                      )
+                  )}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={6}>
+            {/* <Grid item xs={6}>
               <FormControl fullWidth size='small'>
                 <InputLabel id='demo-simple-select-label'>Assign Schedule</InputLabel>
                 <Select
@@ -876,13 +891,17 @@ const ManageDrivers = () => {
                   <MenuItem value=''>
                     <em>None</em>
                   </MenuItem>
-                  <MenuItem value='Schedule 1'>Schedule 1</MenuItem>
-                  <MenuItem value='Schedule 2'>Schedule 2</MenuItem>
-                  <MenuItem value='Schedule 3'>Schedule 3</MenuItem>
-                  <MenuItem value='Schedule 4'>Schedule 4</MenuItem>
+                  {branchSchedules.map(
+                    schedule =>
+                      !schedule.assignedDriver && (
+                        <MenuItem key={schedule._id} value={schedule._id}>
+                          {schedule.schedule_name}
+                        </MenuItem>
+                      )
+                  )}
                 </Select>
               </FormControl>
-            </Grid>
+            </Grid> */}
           </Grid>
         </DialogContent>
         <DialogActions>

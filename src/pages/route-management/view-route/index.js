@@ -33,6 +33,8 @@ import { useRouter } from 'next/router'
 
 import { rows } from '../../../@fake-db/mock-data/view-routes'
 import RenderMap from './RenderMap'
+import apiDefinitions from 'src/api/apiDefinitions'
+import Swal from 'sweetalert2'
 
 const GoogleMapsAPIKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 const MAP_SCRIPT_ID = 'google-maps-script' // ID for the script element
@@ -63,6 +65,7 @@ const Timeline = styled(MuiTimeline)({
 
 const ViewRoute = () => {
   const router = useRouter()
+  const branchDetails = JSON.parse(window.localStorage.getItem('BranchDetails'))
 
   const viewRouteId = router.query.id
   const viewType = router.query.viewType
@@ -85,6 +88,8 @@ const ViewRoute = () => {
 
   const [disableRouteDelete, setDisableRouteDelete] = useState(true)
 
+  const [routeID, setRouteID] = useState('')
+
   const fetch = useCallback(
     debounce((request, callback) => {
       if (window.google && window.google.maps && window.google.maps.places) {
@@ -100,6 +105,30 @@ const ViewRoute = () => {
     }, 400),
     []
   )
+
+  useEffect(() => {
+    apiDefinitions
+      .getRouteById(branchDetails.branch_id, viewRouteId)
+      .then(response => {
+        if (response.status === 200) {
+          console.log(response.data.data)
+
+          setSelectedWayPoints(response.data.data.route_stops)
+          setRouteName(response.data.data.route_name)
+          setRouteStart(response.data.data.route_start)
+          setRouteEnd(response.data.data.route_end)
+          setRouteDistance(response.data.data.route_distance)
+          setRouteDuration(response.data.data.route_duration)
+
+          setRouteID(response.data.data.route_id)
+        } else {
+          throw new Error('Error fetching route')
+        }
+      })
+      .catch(error => {
+        toast.error('Error fetching route')
+      })
+  }, [branchDetails.branch_id, viewRouteId])
 
   useEffect(() => {
     console.log('useEffectCalled')
@@ -209,15 +238,6 @@ const ViewRoute = () => {
   }, [selectedWayPoints])
 
   useEffect(() => {
-    setSelectedWayPoints(rows[0]?.route_stops || [])
-    setRouteName(rows[0]?.route_name || '')
-    setRouteStart(rows[0]?.route_start || '')
-    setRouteEnd(rows[0]?.route_end || '')
-    setRouteDistance(rows[0]?.route_distance || '')
-    setRouteDuration(rows[0]?.route_duration || '')
-  }, [])
-
-  useEffect(() => {
     if (!mapLoaded && typeof window !== 'undefined' && !document.getElementById(MAP_SCRIPT_ID)) {
       loadScript(
         `https://maps.googleapis.com/maps/api/js?key=${GoogleMapsAPIKey}&libraries=places`,
@@ -228,11 +248,40 @@ const ViewRoute = () => {
     }
   }, [])
 
+  const handleRouteUpdate = () => {
+    if (routeName === '') {
+      setRouteNameError('Route name is required')
+    } else if (selectedWayPoints.length < 2) {
+      toast.error('Please add at least 2 waypoints')
+    } else {
+      apiDefinitions
+        .updateRoute(branchDetails.branch_id, viewRouteId, {
+          route_id: routeID,
+          route_name: routeName,
+          route_start: routeStart,
+          route_end: routeEnd,
+          route_distance: routeDistance,
+          route_duration: routeDuration,
+          route_stops: selectedWayPoints
+        })
+        .then(response => {
+          if (response.status === 200) {
+            toast.success('Route updated successfully')
+          } else {
+            throw new Error('Error updating route')
+          }
+        })
+        .catch(error => {
+          toast.error('Error updating route')
+        })
+    }
+  }
+
   return (
     <Grid container spacing={6}>
       <Grid item xs={12}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant='h5'>View Route - #{viewRouteId}</Typography>
+          <Typography variant='h5'>View Route - #{routeID}</Typography>
           {viewType === 'view' && (
             <Button
               onClick={() => {
@@ -566,7 +615,7 @@ const ViewRoute = () => {
                     alignItems: 'center'
                   }}
                 >
-                  <Button variant='contained' color='primary'>
+                  <Button variant='contained' color='primary' onClick={handleRouteUpdate}>
                     Save Changes
                   </Button>
                 </Grid>
@@ -581,7 +630,7 @@ const ViewRoute = () => {
           <Card>
             <CardContent>
               <Grid container spacing={6}>
-                <Grid item xs={6}>
+                <Grid item xs={12}>
                   <Grid container spacing={6}>
                     <Grid item xs={12}>
                       <Typography variant='h6'>Delete Route</Typography>
@@ -597,7 +646,7 @@ const ViewRoute = () => {
                         id='outlined-basic'
                         label='Enter Route Name'
                         variant='outlined'
-                        color='error'
+                        color={disableRouteDelete ? 'error' : 'success'}
                         fullWidth
                         size='small'
                         onChange={e => {
@@ -618,13 +667,43 @@ const ViewRoute = () => {
                         alignItems: 'center'
                       }}
                     >
-                      <Button variant='contained' color='error' disabled={disableRouteDelete}>
+                      <Button
+                        variant='contained'
+                        color='error'
+                        disabled={disableRouteDelete}
+                        onClick={() => {
+                          Swal.fire({
+                            title: 'Are you sure?',
+                            text: 'You will not be able to recover this route!',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, delete it!',
+                            cancelButtonText: 'No, keep it'
+                          }).then(result => {
+                            if (result.isConfirmed) {
+                              apiDefinitions
+                                .deleteRoute(branchDetails.branch_id, viewRouteId)
+                                .then(response => {
+                                  if (response.status === 200) {
+                                    toast.success('Route deleted successfully')
+                                    router.push('/route-management')
+                                  } else {
+                                    throw new Error('Error deleting route')
+                                  }
+                                })
+                                .catch(error => {
+                                  toast.error('Error deleting route')
+                                })
+                            }
+                          })
+                        }}
+                      >
                         Delete Route
                       </Button>
                     </Grid>
                   </Grid>
                 </Grid>
-                <Grid item xs={6}>
+                {/* <Grid item xs={6}>
                   <Grid container spacing={6}>
                     <Grid item xs={12}>
                       <Typography variant='h6'>Deactivate Route</Typography>
@@ -649,7 +728,7 @@ const ViewRoute = () => {
                       </Button>
                     </Grid>
                   </Grid>
-                </Grid>
+                </Grid> */}
               </Grid>
             </CardContent>
           </Card>

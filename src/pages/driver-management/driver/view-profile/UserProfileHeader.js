@@ -19,7 +19,7 @@ const ProfilePicture = styled('img')(({ theme }) => ({
   }
 }))
 
-const UserProfileHeader = () => {
+const UserProfileHeader = ({ driverDetails }) => {
   // ** State
 
   return (
@@ -42,7 +42,7 @@ const UserProfileHeader = () => {
           justifyContent: { xs: 'center', md: 'flex-start' }
         }}
       >
-        <ProfilePicture src='/images/avatars/kaveeja.png' alt='profile-picture' />
+        <ProfilePicture src={driverDetails?.avatar || '/images/avatars/user.jpg'} alt='profile-picture' />
         <Box
           sx={{
             width: '100%',
@@ -55,7 +55,7 @@ const UserProfileHeader = () => {
         >
           <Box sx={{ mb: [6, 0], display: 'flex', flexDirection: 'column', alignItems: ['center', 'flex-start'] }}>
             <Typography variant='h6' sx={{ mb: 0, fontSize: '1.375rem' }}>
-              Kaveeja Perera
+              {driverDetails?.name}
             </Typography>
             <Box
               sx={{
@@ -66,14 +66,14 @@ const UserProfileHeader = () => {
             >
               <Box sx={{ mr: 4, display: 'flex', alignItems: 'center', '& svg': { mr: 1, color: 'text.secondary' } }}>
                 <Typography variant='body2' sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                  EMP002
+                  {driverDetails?.empNum}
                 </Typography>
               </Box>
             </Box>
           </Box>
           <Chip
-            label='ACTIVE'
-            color='success'
+            label={driverDetails?.status ? 'ACTIVE' : 'INACTIVE'}
+            color={driverDetails?.status ? 'success' : 'error'}
             sx={{
               px: 10,
               py: 2,

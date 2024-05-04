@@ -33,6 +33,9 @@ import { Icon } from '@iconify/react'
 import apiDefinitions from 'src/api/apiDefinitions'
 
 import CircularProgress from '@mui/material/CircularProgress'
+import toast from 'react-hot-toast'
+import Swal from 'sweetalert2'
+import { set } from 'nprogress'
 
 const CustomCloseButton = styled(IconButton)(({ theme }) => ({
   top: 0,
@@ -74,6 +77,8 @@ const DriverProfile = () => {
     setOpenDialog(false)
   }
 
+  const [refresh, setRefresh] = useState(false)
+
   const [driverDetails, setDriverDetails] = useState([])
 
   const [profilePhoto, setProfilePhoto] = useState('/static/images/avatars/avatar_6.png')
@@ -88,10 +93,14 @@ const DriverProfile = () => {
   const [phoneNumberError, setPhoneNumberError] = useState('')
   const [driverNIC, setDriverNIC] = useState('')
   const [driverNICError, setDriverNICError] = useState('')
-  const [assignVehicle, setAssignVehicle] = useState('')
-  const [assignRoute, setAssignRoute] = useState('')
 
-  const [branchVehicles, setBranchVehicles] = useState([])
+  const clearErrors = () => {
+    setEmployeeNumberError('')
+    setDriverNameError('')
+    setDriverEmailError('')
+    setPhoneNumberError('')
+    setDriverNICError('')
+  }
 
   const handleFileUploader = () => {
     const fileInput = document.createElement('input')
@@ -158,6 +167,7 @@ const DriverProfile = () => {
             setDriverEmail(response.data.data.email)
             setPhoneNumber(response.data.data.mobileNumber)
             setDriverNIC(response.data.data.nic)
+            setProfilePhoto(response.data.data.avatar)
 
             setIsDriverFound(true)
           } else {
@@ -172,7 +182,55 @@ const DriverProfile = () => {
           setLoading(false)
         })
     }
-  }, [driverId])
+  }, [driverId, refresh])
+
+  const handleDriverUpdate = () => {
+    let error = true
+
+    if (driverName.length === 0) {
+      setDriverNameError('Driver name is required')
+      error = false
+    }
+
+    if (driverNIC.length === 0) {
+      setDriverNICError('Driver NIC is required')
+      error = false
+    }
+
+    if (driverNameError.length === 0 && driverNICError.length === 0 && driverEmailError.length === 0 && error) {
+      Swal.fire({
+        title: 'Are you sure?',
+        text: 'You are about to update the driver details',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, update it!',
+        cancelButtonText: 'No, cancel'
+      }).then(result => {
+        if (result.isConfirmed) {
+          apiDefinitions
+            .updateDriver(driverId, {
+              name: driverName,
+              email: driverEmail,
+              nic: driverNIC,
+              avatar: profilePhoto
+            })
+            .then(response => {
+              if (response.status === 200) {
+                toast.success('Driver details updated successfully')
+                setRefresh(!refresh)
+                handleCloseDialog()
+              } else {
+                toast.error('Failed to update driver details')
+              }
+            })
+            .catch(error => {
+              console.log('error', error)
+              toast.error('Failed to update driver details')
+            })
+        }
+      })
+    }
+  }
 
   return loading ? (
     <Card>
@@ -204,7 +262,7 @@ const DriverProfile = () => {
     <>
       <Grid container spacing={6}>
         <Grid item xs={12}>
-          <UserProfileHeader />
+          <UserProfileHeader driverDetails={driverDetails} />
         </Grid>
         <Grid item xs={12}>
           <Grid container spacing={6}>
@@ -221,7 +279,7 @@ const DriverProfile = () => {
                     height: '100%'
                   }}
                 >
-                  <DriverAbout />
+                  <DriverAbout driverDetails={driverDetails} />
                 </CardContent>
               </Card>
             </Grid>
@@ -242,12 +300,12 @@ const DriverProfile = () => {
                       label='Assigned Vehicles'
                       value='1'
                     />
-                    <Tab
+                    {/* <Tab
                       icon={<Icon icon='mdi:timetable' fontSize={20} />}
                       iconPosition='start'
                       label='Assigned Schedules'
                       value='2'
-                    />
+                    /> */}
                     <Tab
                       icon={<Icon icon='flowbite:user-settings-solid' fontSize={20} />}
                       iconPosition='start'
@@ -273,7 +331,67 @@ const DriverProfile = () => {
                     >
                       {value === '1' && (
                         <Grid container spacing={4}>
-                          <Grid item xs={6}>
+                          {driverDetails.assignedVehicle?.number ? (
+                            <Grid item xs={6}>
+                              <Box
+                                sx={{
+                                  backgroundColor: 'background.paper',
+                                  borderRadius: 1,
+                                  boxShadow: 5,
+                                  minHeight: '100px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 4,
+                                  px: 4,
+                                  width: '100%'
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flex: 1.35
+                                  }}
+                                >
+                                  <Avatar sx={{ width: 60, height: 60 }}>
+                                    <Icon icon='bi:truck' width={30} height={30} />
+                                  </Avatar>
+                                </Box>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    flex: 3,
+                                    gap: 1
+                                  }}
+                                >
+                                  <Typography
+                                    variant='body1'
+                                    sx={{
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {driverDetails.assignedVehicle?.number}
+                                  </Typography>
+                                  {/* <Button variant='contained' color='error' size='small'>
+                                    Unassign
+                                  </Button> */}
+                                </Box>
+                              </Box>
+                            </Grid>
+                          ) : (
+                            <Grid item xs={12}>
+                              <Alert severity='error'>
+                                <AlertTitle>ERROR</AlertTitle>
+                                <Typography variant='body2' color='inherit'>
+                                  The driver is not assigned to any vehicles at the moment.
+                                </Typography>
+                              </Alert>
+                            </Grid>
+                          )}
+                          {/* <Grid item xs={6}>
                             <Box
                               sx={{
                                 backgroundColor: 'background.paper',
@@ -370,60 +488,20 @@ const DriverProfile = () => {
                                 </Button>
                               </Box>
                             </Box>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Box
-                              sx={{
-                                backgroundColor: 'background.paper',
-                                borderRadius: 1,
-                                boxShadow: 5,
-                                minHeight: '100px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 4,
-                                px: 4,
-                                width: '100%'
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flex: 1.35
-                                }}
-                              >
-                                <Avatar sx={{ width: 60, height: 60 }}>
-                                  <Icon icon='bi:truck' width={30} height={30} />
-                                </Avatar>
-                              </Box>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  flex: 3,
-                                  gap: 1
-                                }}
-                              >
-                                <Typography
-                                  variant='body1'
-                                  sx={{
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  KA-01-1234
-                                </Typography>
-                                <Button variant='contained' color='error' size='small'>
-                                  Unassign
-                                </Button>
-                              </Box>
-                            </Box>
-                          </Grid>
+                          </Grid> */}
                         </Grid>
                       )}
                       {value === '2' && (
                         <Grid container spacing={4}>
+                          <Grid item xs={12}>
+                            <Alert severity='error'>
+                              <AlertTitle>ERROR</AlertTitle>
+                              <Typography variant='body2' color='inherit'>
+                                The driver is not assigned to any schedules at the moment.
+                              </Typography>
+                            </Alert>
+                          </Grid>
+
                           <Grid item xs={6}>
                             <Box
                               sx={{
@@ -473,7 +551,7 @@ const DriverProfile = () => {
                               </Box>
                             </Box>
                           </Grid>
-                          <Grid item xs={6}>
+                          {/* <Grid item xs={6}>
                             <Box
                               sx={{
                                 backgroundColor: 'background.paper',
@@ -521,7 +599,7 @@ const DriverProfile = () => {
                                 </Button>
                               </Box>
                             </Box>
-                          </Grid>
+                          </Grid> */}
                         </Grid>
                       )}
                       {value === '3' && (
@@ -549,7 +627,40 @@ const DriverProfile = () => {
                                   justifyContent: 'flex-end'
                                 }}
                               >
-                                <Button variant='contained' color='error' size='small'>
+                                <Button
+                                  variant='contained'
+                                  color='error'
+                                  size='small'
+                                  onClick={() => {
+                                    Swal.fire({
+                                      title: 'Are you sure?',
+                                      text: 'You will not be able to recover this driver!',
+                                      icon: 'warning',
+                                      showCancelButton: true,
+                                      confirmButtonText: 'Yes, delete it!',
+                                      cancelButtonText: 'No, cancel!'
+                                    }).then(result => {
+                                      if (result.isConfirmed) {
+                                        apiDefinitions
+                                          .deleteDriver(driverId)
+                                          .then(response => {
+                                            if (response.status === 200) {
+                                              toast.success('Driver deleted successfully')
+                                              setTimeout(() => {
+                                                router.push('/driver-management')
+                                              }, 2000)
+                                            } else {
+                                              toast.error('Failed to delete driver')
+                                            }
+                                          })
+                                          .catch(error => {
+                                            console.log('error', error)
+                                            toast.error('Failed to delete driver')
+                                          })
+                                      }
+                                    })
+                                  }}
+                                >
                                   Delete Driver
                                 </Button>
                               </Box>
@@ -565,11 +676,11 @@ const DriverProfile = () => {
                                   Edit Driver Details
                                 </Button>
                               </Grid>
-                              <Grid item xs={12}>
+                              {/* <Grid item xs={12}>
                                 <Button variant='outlined' color='error' fullWidth>
                                   Deactivate Driver
                                 </Button>
-                              </Grid>
+                              </Grid> */}
                             </Grid>
                           </Grid>
                         </Grid>
@@ -591,7 +702,7 @@ const DriverProfile = () => {
         scroll='paper'
       >
         <DialogTitle variant='h5'>
-          Add New Driver
+          Update Driver
           <CustomCloseButton aria-label='close' onClick={handleCloseDialog}>
             <Icon icon='tabler:x' fontSize='1.25rem' />
           </CustomCloseButton>
@@ -626,6 +737,7 @@ const DriverProfile = () => {
                     variant='outlined'
                     fullWidth
                     required
+                    disabled
                     value={employeeNumber}
                     onChange={e => {
                       setEmployeeNumberError('')
@@ -702,6 +814,7 @@ const DriverProfile = () => {
                 type='number'
                 placeholder='7XXXXXXXX'
                 value={phoneNumber}
+                disabled
                 onChange={e => {
                   const input = e.target.value.trim().slice(0, 9)
                   let error = ''
@@ -758,53 +871,29 @@ const DriverProfile = () => {
                 size='small'
               />
             </Grid>
-            <Grid item xs={6}>
-              <FormControl fullWidth size='small'>
-                <InputLabel id='demo-simple-select-label'>Assign Vehicle</InputLabel>
-                <Select
-                  labelId='demo-simple-select-label'
-                  id='demo-simple-select'
-                  label='Assign Vehicle'
-                  value={assignVehicle}
-                  onChange={e => setAssignVehicle(e.target.value)}
-                >
-                  <MenuItem value=''>
-                    <em>None</em>
-                  </MenuItem>
-                  {branchVehicles.map(vehicle => (
-                    <MenuItem key={vehicle._id} value={vehicle._id}>
-                      {vehicle.number}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <FormControl fullWidth size='small'>
-                <InputLabel id='demo-simple-select-label'>Assign Route</InputLabel>
-                <Select
-                  labelId='demo-simple-select-label'
-                  id='demo-simple-select'
-                  label='Assign Route'
-                  value={assignRoute}
-                  onChange={e => setAssignRoute(e.target.value)}
-                >
-                  <MenuItem value=''>
-                    <em>None</em>
-                  </MenuItem>
-                  <MenuItem value='Route 1'>Route 1</MenuItem>
-                  <MenuItem value='Route 2'>Route 2</MenuItem>
-                  <MenuItem value='Route 3'>Route 3</MenuItem>
-                  <MenuItem value='Route 4'>Route 4</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button variant='contained' sx={{ px: 4 }}>
-            Save Driver
-          </Button>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2
+            }}
+          >
+            <Button
+              variant='outlined'
+              onClick={e => {
+                setRefresh(!refresh)
+                clearErrors()
+              }}
+            >
+              Reset
+            </Button>
+
+            <Button variant='contained' sx={{ px: 4 }} onClick={handleDriverUpdate}>
+              Update Driver
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </>

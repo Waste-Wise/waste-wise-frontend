@@ -104,13 +104,53 @@ const ViewFleet = () => {
               Track Location
             </Button> */}
 
-            <Button variant='contained' color='primary'>
+            <Button
+              variant='contained'
+              color='primary'
+              onClick={() => {
+                window.location.href = `/fleet-management/track-fleet?id=${params.row.id}`
+              }}
+            >
               <Icon icon='grommet-icons:map-location' fontSize={20} />
             </Button>
-            <Button variant='contained' color='warning'>
+            {/* <Button variant='contained' color='warning'>
               <Icon icon='bi:pencil-square' fontSize={20} />
-            </Button>
-            <Button variant='contained' color='error'>
+            </Button> */}
+            <Button
+              variant='contained'
+              color='error'
+              disabled={params.row.vehicle_status === 'Active'}
+              onClick={() => {
+                Swal.fire({
+                  title: 'Are you sure?',
+                  text: 'Do you want to delete this vehicle?',
+                  icon: 'warning',
+                  showCancelButton: true,
+                  confirmButtonText: 'Yes, delete it!',
+                  cancelButtonText: 'No, cancel!',
+                  reverseButtons: true
+                }).then(result => {
+                  if (result.isConfirmed) {
+                    apiDefinitions
+                      .deleteVehicle(params.row.id)
+                      .then(response => {
+                        if (response.status === 200) {
+                          toast.success('Vehicle deleted successfully!')
+                          setRefreshData(!refreshData)
+                        } else {
+                          toast.error('Failed to delete vehicle!')
+                        }
+                      })
+                      .catch(error => {
+                        console.log('error', error)
+                        toast.error('Failed to delete vehicle!')
+                      })
+                  } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    Swal.fire('Cancelled', 'Vehicle not deleted :)', 'info')
+                  }
+                })
+              }}
+            >
               <Icon icon='bi:trash' fontSize={20} />
             </Button>
           </Box>

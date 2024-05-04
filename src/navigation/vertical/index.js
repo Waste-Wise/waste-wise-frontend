@@ -5,11 +5,12 @@ const navigation = () => {
       path: '/home',
       icon: 'mdi:view-dashboard-outline'
     },
-    {
-      title: 'Collection Schedule',
-      path: '/schedule-management',
-      icon: 'healthicons:i-schedule-school-date-time'
-    },
+
+    // {
+    //   title: 'Collection Schedule',
+    //   path: '/schedule-management',
+    //   icon: 'healthicons:i-schedule-school-date-time'
+    // },
     {
       title: 'Manage Route',
       path: '/route-management',

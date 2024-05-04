@@ -33,8 +33,10 @@ import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd'
 import { toast } from 'react-hot-toast'
 import CustomChip from 'src/@core/components/mui/chip'
 
-import { rows } from '../../@fake-db/mock-data/routes'
+// import { rows } from '../../@fake-db/mock-data/routes'
 import { useRouter } from 'next/router'
+import Swal from 'sweetalert2'
+import apiDefinitions from 'src/api/apiDefinitions'
 
 const GoogleMapsAPIKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
@@ -83,6 +85,8 @@ const ManageRoutes = () => {
   const [inputValueEdit, setInputValueEdit] = useState('')
   const [optionsEdit, setOptionsEdit] = useState([])
 
+  const branchDetails = JSON.parse(window.localStorage.getItem('BranchDetails'))
+
   const [routeName, setRouteName] = useState('')
   const [routeNameError, setRouteNameError] = useState('')
   const [routeStart, setRouteStart] = useState('')
@@ -96,6 +100,26 @@ const ManageRoutes = () => {
 
   const [selectedWayPoints, setSelectedWayPoints] = useState(['', ''])
 
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
+    apiDefinitions
+      .getAllRoutes(branchDetails.branch_id)
+      .then(res => {
+        if (res.status === 200) {
+          console.log('Routes:', res.data.data)
+
+          setRows(res.data.data)
+        } else {
+          throw new Error('Error fetching routes')
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching routes:', error)
+        toast.error('Error fetching routes!')
+      })
+  }, [])
+
   const loaded = useRef(false)
 
   const [openDialog, setOpenDialog] = useState(false)
@@ -103,8 +127,8 @@ const ManageRoutes = () => {
 
   const [columns, setColumns] = useState([
     {
-      flex: 0.1,
-      minWidth: 100,
+      flex: 0.075,
+      minWidth: 80,
       field: 'route_id',
       headerName: 'Route ID',
       renderCell: params => <Typography variant='body2'>{params.row.route_id}</Typography>
@@ -118,16 +142,16 @@ const ManageRoutes = () => {
       renderCell: params => <Typography variant='body2'>{params.row.route_name}</Typography>
     },
     {
-      flex: 0.1,
-      minWidth: 100,
+      flex: 0.175,
+      minWidth: 120,
       field: 'route_start',
       headerName: 'Start',
 
       renderCell: params => <Typography variant='body2'>{params.row.route_start}</Typography>
     },
     {
-      flex: 0.1,
-      minWidth: 100,
+      flex: 0.175,
+      minWidth: 120,
       field: 'route_end',
       headerName: 'End',
 
@@ -139,7 +163,7 @@ const ManageRoutes = () => {
       field: 'route_distance',
       headerName: 'Distance',
 
-      renderCell: params => <Typography variant='body2'>{params.row.route_distance}</Typography>
+      renderCell: params => <Typography variant='body2'>{params.row.route_distance} KM</Typography>
     },
     {
       flex: 0.1,
@@ -147,24 +171,25 @@ const ManageRoutes = () => {
       field: 'route_duration',
       headerName: 'Duration',
 
-      renderCell: params => <Typography variant='body2'>{params.row.route_duration}</Typography>
+      renderCell: params => <Typography variant='body2'>{params.row.route_duration} Hours</Typography>
     },
-    {
-      flex: 0.1,
-      minWidth: 100,
-      field: 'route_status',
-      headerName: 'Status',
 
-      renderCell: params => (
-        <CustomChip
-          label={params.row.route_status}
-          color={params.row.route_status === 'Active' ? 'success' : 'error'}
-        />
-      )
-    },
+    // {
+    //   flex: 0.1,
+    //   minWidth: 100,
+    //   field: 'route_status',
+    //   headerName: 'Status',
+
+    //   renderCell: params => (
+    //     <CustomChip
+    //       label={params.row.route_status}
+    //       color={params.row.route_status === 'Active' ? 'success' : 'error'}
+    //     />
+    //   )
+    // },
     {
-      flex: 0.15,
-      minWidth: 200,
+      flex: 0.125,
+      minWidth: 180,
       field: 'actions',
       headerName: 'Actions',
 
@@ -175,7 +200,7 @@ const ManageRoutes = () => {
               variant='outlined'
               color='primary'
               onClick={() => {
-                router.push(`/route-management/view-route?id=${params.row.route_id}&viewType=view`)
+                router.push(`/route-management/view-route?id=${params.row._id}&viewType=view`)
               }}
             >
               View Route
@@ -186,7 +211,6 @@ const ManageRoutes = () => {
     }
   ])
 
-  const [rowCount, setRowCount] = useState(3)
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
 
   const handleCloseDialog = () => {
@@ -435,7 +459,30 @@ const ManageRoutes = () => {
           route_stops: waypoints // Use waypoints with geolocation
         }
 
-        console.log('Route payload:', payload)
+        Swal.fire({
+          title: 'Are you sure?',
+          text: 'Do you want to save this route?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, save it!',
+          cancelButtonText: 'No, cancel!'
+        }).then(result => {
+          if (result.isConfirmed) {
+            apiDefinitions
+              .createRoute(branchDetails.branch_id, payload)
+              .then(res => {
+                if (res.status === 201) {
+                  toast.success('Route saved successfully!')
+                  setOpenDialog(false)
+                  router.push(`/route-management/view-route?id=${res.data.data._id}&viewType=view`)
+                }
+              })
+              .catch(error => {
+                console.error('Error saving route:', error)
+                toast.error('Error saving route!')
+              })
+          }
+        })
       })
       .catch(error => {
         console.error('Geocoding error:', error)
@@ -467,9 +514,8 @@ const ManageRoutes = () => {
               <DataGrid
                 autoHeight
                 getRowHeight={() => 'auto'}
-                getRowId={row => row.route_id}
+                getRowId={row => row._id}
                 rows={rows}
-                rowCount={rowCount}
                 columns={columns}
                 pageSizeOptions={[5, 10, 25, 50]}
                 paginationModel={paginationModel}
